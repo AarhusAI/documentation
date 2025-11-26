@@ -6,9 +6,9 @@ parent: Builder
 # {{ page.title }}
 Viden kan anvendes til at gøre sprogmodellen klogere på et område ved at berige den med en række dokumenter. Når man uploader viden til OpenWebUI bliver det processeret af systemet. Den processering går ud på at dele dokumenterne op i "chunks" af 500 tegn, herefter bliver det lavet til tokens, der bliver til vektorer. Disse vektorer anvendes når du stiller et spørgsmål,  Dvs. når du spørger en specialist om noget der står i de uploadede dokumenter gør specialisten som den "plejer" den bryder dit spørgsmål op i tokens og finder de vektorer i viden der passer bedst og sender det hele med til sprogmodellen. Dette betyder at den ikke nødvendigvis finder det man forventede, da det ikke er en søgning der sker.
 
-##Eksempel
+## Eksempel
 Du uploader et dokument med viden om kontaktpersoner til forskellige afdelinger. Der kunne stå:
-###Digitalisering
+### Digitalisering
 Person A 
 Telefon nummer: 12345678
 
