@@ -1,6 +1,9 @@
 ---
 title: Sprogmodeller
 parent: Builder
+has_children: true
 ---
 
-# {{ page.title }}
+# Sprogmodeller
+
+Test

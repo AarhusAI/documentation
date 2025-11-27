@@ -3,8 +3,11 @@ title: Rettigheder
 parent: Builder
 ---
 
-# {{ page.title }}
-Som Builder har man udviddet rettigheder i forhold til en slutbruger (læs om hvad en slutbruger kan her:XXX). En builder har følgende rettigheder:
+# Rettigheder
+
+Som Builder har man udviddet rettigheder i forhold til en slutbruger (læs om hvad en slutbruger kan her:XXX). En builder
+har følgende rettigheder:
+
 - Modeller adgang
 - Videnadgang
 - Prompts adgang

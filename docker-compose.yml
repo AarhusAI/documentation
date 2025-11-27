@@ -24,3 +24,8 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=frontend"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_DOMAIN}`)"
+
+  markdownlint:
+    image: itkdev/markdownlint
+    volumes:
+      - ./:/md

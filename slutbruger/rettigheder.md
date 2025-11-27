@@ -3,8 +3,10 @@ title: Rettigheder - slutbruger
 parent: Slutbruger
 ---
 
-# {{ page.title }}
+# Rettigheder
+
 Som slutbruger har man en række rettigheder, disse rettigheder har alle brugere af systemet:
+
 - Tillad upload af fil
 - Tillad redigering af chats
 - Tillad sletning af chats
