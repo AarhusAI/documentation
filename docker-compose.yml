@@ -1,0 +1,26 @@
+networks:
+  frontend:
+    external: true
+  app:
+    driver: bridge
+    internal: false
+
+services:
+  jekyll:
+    image: jekyll/jekyll:4
+    command: jekyll serve --watch
+    environment:
+      - JEKYLL_ENV=development
+      - VIRTUAL_HOST=${COMPOSE_DOMAIN}
+    networks:
+      - frontend
+      - app
+    ports:
+      - '4000'
+      - '35729'
+    volumes:
+      - ${PWD}:/srv/jekyll
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=frontend"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_DOMAIN}`)"

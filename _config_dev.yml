@@ -1,6 +1,9 @@
 title: AarhusAI Documentation
 repository: AarhusAI/documentation
 
+url: "http://aarhusai-docs.local.itkdev.dk"
+baseurl: "/documentation"
+
 # Theme
 remote_theme: just-the-docs/just-the-docs
 
