@@ -8,16 +8,20 @@ nav_order: 2
 # AarhusAI GitOps usage
 
 To install AarhusAI with this GitOps [template](https://github.com/AarhusAI/helm-deployments), you need to have a
-Kubernetes cluster with Helm 3 installed and [Ceph](https://rook.io/docs/rook/v1.12/Getting-Started/quickstart/)
-filesystem installed.
+Kubernetes cluster with the following installed:
 
-This installation documentation must be followed and executed in the correct order as described below, because the
-different services require other services to be ready before they can be installed. In particular, ArgoCD needs to be
-installed before Argo resources and sealed secrets, before Prometheus and Grafana, etc. The application requires you to
-generate new API keys, etc., and use sealed secrets to store them before a given service is installed, and some need the
-keys/secrets from one service to communicate with another.
+* Helm 3
+* [Ceph](https://rook.io/docs/rook/v1.12/Getting-Started/quickstart/) filesystem
 
-Also, because all configuration is stored in GitOps as code, you need to update secrets and URLs to match your domain
+This deployment documentation must be followed and executed in the exact order as described below. This is
+due to some services depending on other services being ready before they can be installed.
+
+In particular, `ArgoCD` needs to be installed before `Argo resources`, `sealed secrets` etc.
+
+The application also requires generation of API keys, etc., and that you use sealed secrets to store them before a
+given service can be installed. Some services also require keys/secrets from one service to communicate with another.
+
+Also, because all configuration is stored in GitOps as code, you will need to update secrets and URLs to match your domain
 and setup. This document will guide you through the process of setting up AarhusAI.
 
 ## Bootstrap continuous deployment
@@ -31,7 +35,7 @@ a new GitHub repository based on this [template repository](https://github.com/A
 For continuous development and using GitOps to handle updates and configuration
 changes, [ArgoCD](https://argo-cd.readthedocs.io/en/stable/) needs to be bootstrapped into the cluster.
 
-Configuration to change in `applications/argo-cd/values.yaml`:
+To do so, configure the domain in `applications/argo-cd/values.yaml`:
 
 ```yaml
 global:
@@ -49,7 +53,7 @@ kubectl create namespace argo-cd
 helm template argo-cd . -n argo-cd | kubectl apply -f -
 ```
 
-You can check that ArgoCD is running by opening the ingress URL:
+You can ensure that ArgoCD is running by opening the ingress URL:
 
 ```shell
 kubectl get ingress argocd-server -n argo-cd -o jsonpath='{.spec.rules[0].host}' | xargs -I {} open "https://{}"
@@ -61,8 +65,8 @@ You can log into the web-based user interface with the username `admin` and get 
 kubectl -n argo-cd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 ```
 
-As an optional configuration, later on, we can install [Authentik](https://goauthentik.io/) as a single-sign-on (SSO)
-provider for the internal services in the cluster.
+Optionally, [Authentik](https://goauthentik.io/) can be installed as a single-sign-on (SSO) provider for
+the internal services in the cluster. See the [Authentik](authentik.md) for more information.
 
 ### Argo resources (applications)
 
@@ -77,8 +81,8 @@ spec:
     repoURL: https://github.com/aarhusai/<YOUR REPO>.git
 ```
 
-One also needs to change the configuration `sourceRepos` **in every**
-`applications/argo-cd-resources/templates/projects/*.yaml` file for each application so Argo knows which repos to stay
+Likewise, you need to modify the `sourceRepos` configuration accordingly **in every**
+`applications/argo-cd-resources/templates/projects/*.yaml` file, to ensure that Argo knows which repo to stay
 in sync with.
 
 The last step in Argo installation is to install the resources:
@@ -89,8 +93,10 @@ helm template argo-cd-resources . -n argo-cd | kubectl apply -f -
 ```
 
 This will install all the applications from `applications/argo-cd-resources/values.yaml` that are set to
-`automated: true`, which are all the applications that do not need configuration changes. All the other applications
-will need to have their configuration updated and changed to automatically sync with the repository.
+`automated: true` which are all the applications that do not need configuration changes.
+
+All other applications will need to have their configuration updated and committed to the repository
+before they can be installed.
 
 ## Observability
 
@@ -121,7 +127,7 @@ You can access Grafana by opening the ingress URL:
 kubectl get ingress -n monitoring -o jsonpath='{.items[*].spec.rules[*].host}' | tr ' ' '\n' | grep grafana | xargs -I {} open "https://{}"
 ```
 
-Log into grafana with the username `admin` and password:
+Log into Grafana with the username `admin` and password:
 
 ```yaml
 kubectl get secret -n monitoring prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 -d; echo
@@ -130,8 +136,9 @@ kubectl get secret -n monitoring prometheus-stack-grafana -o jsonpath="{.data.ad
 ## Sealed Secrets
 
 Before installing the rest of the applications, we need to install `kubeseal` to generate sealed secrets that can be
-safely committed to public GitHub repositories. (Yes, one can reconfigure ArgoCD to use private repositories, but one
-would still use sealed secrets to protect secrets. Accidental exposure happens, and human errors occur.)
+safely committed to public GitHub repositories. Yes, one can reconfigure ArgoCD to use private repositories, but one
+would still use sealed secrets to protect these secrets. Accidental exposure happens, and human errors occur, hence
+the need for sealed secrets.
 
 Read more about [sealed secrets](https://github.com/bitnami-labs/sealed-secrets).
 
@@ -147,7 +154,7 @@ kubeseal --fetch-cert > public-cert.pem
 ```
 
 Optionally use the ingress endpoint (`--cert http://sealed-secrets.<FQDN>/v1/cert.pem`). To enable the ingress endpoint
-for sealed secrets, edit `applications/sealed-secrets/values.yaml` and change `ingress.enabled` to true. Commit and
+for sealed secrets edit `applications/sealed-secrets/values.yaml` and change `ingress.enabled` to true. Commit and
 push the changes to the repository and wait for the redeployment of sealed secrets by ArgoCD.
 
 ### Seal a secret (example)
@@ -175,7 +182,7 @@ stringData:
   CA_VLLM_LOCAL_API_KEY: <KEY>
 ```
 
-When you need to generate a random key, you can use this command:
+To generate a new random key, use this command:
 
 ```shell
 echo "$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 32 | head -n 1)"
@@ -233,20 +240,19 @@ kubeseal --cert public-cert.pem --format yaml > templates/sealed-vllm-secret.yam
 ```
 
 Change `automated` to true in `applications/argo-cd-resources/values.yaml` for the `vllm` application. Add, commit, and
-push the changes to have Argo deploy vLLM automatically. **Note** that it may take some time to deploy vLLM for the
-first time as it downloads the model from Hugging Face and loads it into GPU memory.
+push the changes to have Argo deploy vLLM automatically. **Note** that it may take some time to deploy vLLM the
+first time, as it downloads the model from Hugging Face and loads it into GPU memory.
 
 ## LiteLLM
 
-This is an LLM proxy that can be used to generate virtual API keys and keep track of token costs. It is able to talk to
+This is a LLM proxy that can be used to generate virtual API keys and keep track of token costs. It is able to talk to
 many different LLM servicing frameworks. It extends the ability to connect to Azure, Claude, and OpenAI APIs, which are
-not
-necessarily supported by the frontend (Open WebUI). It also has a built-in, simple chat interface which can be used to
-debug connections to models.
+not necessarily supported by the frontend (Open WebUI). It also has a built-in, simple chat interface which can be used
+to debug connections to models.
 
-It is also the place to set up guardrails. We currently ship with a single custom guardrail that ensures that the
-context window for Mistral is not "overflowed" by ensuring that the context window is not larger than the model's
-maximum context window. So if you are using another model, you may need to adjust the guardrail configuration.
+It is also the place to set up guardrails. We currently ship with a single custom guardrail ensuring that the
+context window for Mistral is not overflowed. It does so by ensuring that the context window is not larger than the model's
+maximum context window. So, if you are using another model, you may need to adjust the guardrail configuration.
 
 [LiteLLM](https://docs.litellm.ai/docs/) uses a PostgreSQL database to store the virtual API keys (if used) and usage
 statistics. So we need to create a secret for the database credentials:
@@ -273,7 +279,7 @@ kubectl create -f local-secrets/litellm-cloudnative-pg-secret.yaml --dry-run=cli
 kubeseal --cert public-cert.pem --format yaml > templates/sealed-cloudnative-pg-secret.yaml
 ```
 
-Next, we need to set a master key and API keyes for the confiuraed end-points. Create the file
+Next, we need to set a master key and API keys for the configured end-points. Create the file
 `local-secrets/litellm-secrets.yaml`:
 
 ```yaml
@@ -296,7 +302,7 @@ kubectl create -f local-secrets/litellm-secrets.yaml --dry-run=client -o yaml | 
 kubeseal --cert public-cert.pem --format yaml > templates/sealed-litellm-secrets.yaml
 ```
 
-**NOTE**: If you want to access the web UI, you need to edit `litellm-values.yaml` and enable ingress and set a domain
+**NOTE**: If you want to access the web UI, you need to edit `litellm-values.yaml` by enabling ingress and setting a domain
 name to access it. You can use the master key from the `litellm-secrets` secret as the password for the web UI.
 
 Change `automated` to true in `applications/argo-cd-resources/values.yaml` for the `litellm` application. Add,
@@ -305,12 +311,12 @@ commit, and push the changes to have Argo deploy LiteLLM automatically.
 ## Document ingestion route (optional recommended)
 
 This is a [FastAPI](https://fastapi.tiangolo.com/) proxy that tries to find the best way to extract texts for RAG before
-embedding when files and web search results are processed. Currently, it supports Tika for the backend and makes some
+embedding, when files and web search results are processed. Currently, it supports Tika for the backend and makes some
 decisions about whether to extract clean text or Markdown. The idea is that it should be used later on to route input
 data to the correct extractor based on, e.g., file types, etc. It could use tools such as Marker, MarkItDown, Docling,
 and Tika.
 
-It is optional, as Open WebUI can talk directly to Tika or Docling (but it's recommended for better text extraction).
+It is optional, as Open WebUI can talk directly to Tika or Docling, but it is recommended for better text extraction.
 
 Create the file `local-secrets/secrets.yaml`:
 
@@ -339,11 +345,11 @@ commit, and push the changes to have Argo deploy automatically.
 ## SearXNG (optional recommended)
 
 [SearXNG](https://docs.searxng.org/) is a metasearch engine and is used to find relevant documents for a given
-query search on the internet. Open WebUI can be configured to use a range of online web search pages (but only one at a
-time). SearXNG allows us to search a huge range of different search engines, and it is also possible to add custom
+query search on the internet. Open WebUI can be configured to use a range of online web search pages, but only one at a
+time. SearXNG allows us to search a huge range of known search engines while also allowing the addition of custom
 search engines.
 
-It also ensures searches are anonymous and not trackable from one query to the next, thereby ensuring that one does not
+It also ensures searches are anonymous and untraceable from one query to the next, thereby ensuring that one does not
 affect another. It filters out paid results and AI-generated results.
 
 In Aarhus, we have made an engine that searches [https://aarhus.dk/search](https://aarhus.dk/search) and places its
@@ -377,13 +383,13 @@ commit, and push the changes to have Argo deploy automatically.
 ## Open WebUI
 
 [Open WebUI](https://docs.openwebui.com/) is the main application that binds the whole AarhusAI stack together by
-providing the framework to chat with the LLM(s) and make RAG-based models. It has a lot of features that can be
-controlled
-through [environment variables](https://docs.openwebui.com/getting-started/env-configuration). The deployment comes with
-some default values that match the current AarhusAI setup, but you can change them to fit your needs in `values.yaml`.
+providing the framework to chat with the LLM(s) and making RAG-based models. It has a lot of features that can be
+controlled through [environment variables](https://docs.openwebui.com/getting-started/env-configuration).
+The deployment comes with some default values that match the current AarhusAI setup, but you can change them
+to fit your needs in `values.yaml`.
 
-Also note that `was-middleware.yaml` in templates should be updated to match your municipality's
-"tilgængelighedserklæringer" to redirect correctly to it.
+Also note, that `was-middleware.yaml` found in the openwebui templates folder should be updated to match your municipality's
+accessibility statement(s) (tilgængelighedserklæringer).
 
 Create the file `local-secrets/openwebui-secrets.yaml`:
 
@@ -402,6 +408,8 @@ stringData:
   EXTERNAL_DOCUMENT_LOADER_API_KEY: <DOC INGESTION ROUTE>
 ```
 
+Skal denne ikke seales?
+
 Create the file `local-secrets/cloudnative-pg-cluster-openwebui-secret.yaml`:
 
 ```yaml
@@ -416,6 +424,8 @@ stringData:
   username: openwebui
   password: <GENERATED PASSWORD>
 ```
+
+Skal denne ikke seales?
 
 Change `automated` to true in `applications/argo-cd-resources/values.yaml` for the `openwebui` application. Add,
 commit, and push the changes to have Argo deploy automatically.
