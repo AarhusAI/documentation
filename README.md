@@ -11,7 +11,6 @@ All the technical documentation has is in english and the end-user documentation
 All contribution should be through pull requests and have to pass workflow actions and linting
 of the markdown files.
 
-
 ## Github pages for Docs
 
 We
