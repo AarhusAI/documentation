@@ -5,7 +5,7 @@ parent: Admin
 
 # Testcases
 
-Vi anvender en række testcases når der testes en ny release. 
+Vi anvender en række testcases når der testes en ny release.
 De er lavet ud fra hvad der er forretningskritisk funktionalitet, og hvilke udfordringer vi har haft i løsningen.
 
 | Tester     | Område         | Test scenarie            | Test steps                                                                                                                      | System tilstand                                | Test data                               | Forventet resultat                                                                                                                                                                                                                                                                                   | Eksempel                                          | Resultat | Test status |
