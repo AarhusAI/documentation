@@ -11,6 +11,8 @@ har følgende rettigheder:
 - Modeller adgang
 - Videnadgang
 - Prompts adgang
+- Models sharing
+- Knowledge sharing
 - Tillad upload af fil
 - Tillad kontrol af chats
 - Allow Chat Valves
