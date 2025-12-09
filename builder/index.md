@@ -17,7 +17,7 @@ Som builder skal du huske:
   - etisk forsvarlig
   - overholder GDPR og AI Act
 
-## Mangler i løsningen
+## Udestående funktioner
 
 Aarhus AI er ikke en som chatGPT, co-pilot og de andre. AarhusAI er et OpenSource produkt bygget på OpenWebUI (og meget
 mere, det kan i læse om i den tekniske dokumentation hvis i er nysgerrige) og der er mangler i produktet. Aarhus AI kan
