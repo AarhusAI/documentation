@@ -53,7 +53,7 @@ kubectl create namespace argo-cd
 helm template argo-cd . -n argo-cd | kubectl apply -f -
 ```
 
-Because we are installing ingress controller with ArgoCD, it is only accessable by using port forwarding at this point
+Because we are installing the ingress controller with ArgoCD, it is only accessable by using port forwarding at this point
 in the installation:
 
 ```shell
