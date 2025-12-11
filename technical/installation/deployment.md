@@ -92,7 +92,7 @@ Likewise, you need to modify the `sourceRepos` configuration accordingly **in ev
 `applications/argo-cd-resources/templates/projects/*.yaml` file, to ensure that Argo knows which repo to stay
 in sync with.
 
-Now commit the changes to the repository before the next step in Argo installation is to install the resources:
+Now commit the changes to the repository before the next step in Argo installation, which is to install the resources:
 
 ```shell
 cd applications/argo-cd-resources/
