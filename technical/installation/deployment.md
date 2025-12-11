@@ -53,8 +53,8 @@ kubectl create namespace argo-cd
 helm template argo-cd . -n argo-cd | kubectl apply -f -
 ```
 
-Because we are installing ingress controller with ArgoCD, it is only accessable by using port forwarding at this point in
-the installation:
+Because we are installing ingress controller with ArgoCD, it is only accessable by using port forwarding at this point
+in the installation:
 
 ```shell
 kubectl port-forward svc/argo-cd-argocd-server -n argo-cd 8443:443
@@ -92,7 +92,7 @@ Likewise, you need to modify the `sourceRepos` configuration accordingly **in ev
 `applications/argo-cd-resources/templates/projects/*.yaml` file, to ensure that Argo knows which repo to stay
 in sync with.
 
-The last step in Argo installation is to install the resources:
+Now commit the changes to the repository before the next step in Argo installation is to install the resources:
 
 ```shell
 cd applications/argo-cd-resources/
@@ -108,7 +108,9 @@ before they can be installed.
 ## Observability
 
 Loki, Tempo, and Alloy are automatically installed by ArgoCD above as they do not require configuration changes. But
-Grafana needs some basic domain name and URL configuration:
+Grafana needs some basic domain name and URL configuration.
+
+Edit `applications/prometheus-stack/values.yaml` and change the following:
 
 ```yaml
 grafana:
@@ -131,7 +133,7 @@ Change `automated` to true in `applications/argo-cd-resources/values.yaml` for t
 You can access Grafana by opening the ingress URL:
 
 ```yaml
-kubectl get ingress -n monitoring -o jsonpath='{.items[*].spec.rules[*].host}' | tr ' ' '\n' | grep grafana | xargs -I {} open "https://{}"
+kubectl get ingress -n monitoring -o jsonpath='{.items[*].spec.rules[*].host}' | tr ' ' '\n' | xargs -I {} open "https://{}"
 ```
 
 Log into Grafana with the username `admin` and password:
@@ -392,7 +394,30 @@ to fit your needs in `values.yaml`.
 Also note, that `was-middleware.yaml` found in the openwebui templates folder should be updated to match your
 municipality's accessibility statement(s) (tilgængelighedserklæringer).
 
-Create the file `local-secrets/openwebui-secrets.yaml`:
+First you need to update the ingress in `applications/openwebui/values.yaml` to match your domain name. You also have to
+read through this file and update the settings to match your needs.
+
+**Note**: You need to allow "Sign-up" to allow the creation of the first user as _admin_ in the system (setting
+`ENABLE_SIGNUP` to `True`). You can make another deployment right after to disable the sign-up.
+
+```yaml
+  ingress:
+    enabled: true
+    class: "traefik"
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+      traefik.ingress.kubernetes.io/router.middlewares: openwebui-was-redirect@kubernetescrd
+    host: ai.<FQDN>
+    additionalHosts: [ ]
+    tls:
+      - hosts:
+          - ai.<FQDN>
+        secretName: ai.<FQDN>-tls
+    existingSecret: ""
+    extraLabels: { }
+```
+
+Next create the file `local-secrets/openwebui-secrets.yaml`:
 
 ```yaml
 apiVersion: v1
@@ -433,7 +458,7 @@ stringData:
 Seal it:
 
 ```shell
-kubectl create -f local-secrets/cloudnative-pg-cluster-openwebui-secret.yaml --dry-run=client -o yaml | kubeseal --cert public-cert.pem --format yaml > templates/cloudnative-pg-cluster-openwebui-secret.yaml
+kubectl create -f local-secrets/cloudnative-pg-cluster-openwebui-secret.yaml --dry-run=client -o yaml | kubeseal --cert public-cert.pem --format yaml > templates/sealed-cloudnative-pg-cluster-openwebui-secret.yaml
 ```
 
 Change `automated` to true in `applications/argo-cd-resources/values.yaml` for the `openwebui` application. Add,
