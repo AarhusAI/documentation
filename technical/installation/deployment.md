@@ -21,8 +21,8 @@ In particular, `ArgoCD` needs to be installed before `Argo resources`, `sealed s
 The application also requires generation of API keys, etc., and that you use sealed secrets to store them before a
 given service can be installed. Some services also require keys/secrets from one service to communicate with another.
 
-Also, because all configuration is stored in GitOps as code, you will need to update secrets and URLs to match your domain
-and setup. This document will guide you through the process of setting up AarhusAI.
+Also, because all configuration is stored in GitOps as code, you will need to update secrets and URLs to match your
+domain and setup. This document will guide you through the process of setting up AarhusAI.
 
 ## Bootstrap continuous deployment
 
@@ -53,10 +53,17 @@ kubectl create namespace argo-cd
 helm template argo-cd . -n argo-cd | kubectl apply -f -
 ```
 
+Because we are installing the ingress controller with ArgoCD, it is only accessable by using port forwarding at this point
+in the installation:
+
+```shell
+kubectl port-forward svc/argo-cd-argocd-server -n argo-cd 8443:443
+```
+
 You can ensure that ArgoCD is running by opening the ingress URL:
 
 ```shell
-kubectl get ingress argocd-server -n argo-cd -o jsonpath='{.spec.rules[0].host}' | xargs -I {} open "https://{}"
+open 127.0.0.1:8443
 ```
 
 You can log into the web-based user interface with the username `admin` and get the password with this command:
@@ -85,7 +92,7 @@ Likewise, you need to modify the `sourceRepos` configuration accordingly **in ev
 `applications/argo-cd-resources/templates/projects/*.yaml` file, to ensure that Argo knows which repo to stay
 in sync with.
 
-The last step in Argo installation is to install the resources:
+Now commit the changes to the repository before the next step in Argo installation, which is to install the resources:
 
 ```shell
 cd applications/argo-cd-resources/
@@ -101,7 +108,9 @@ before they can be installed.
 ## Observability
 
 Loki, Tempo, and Alloy are automatically installed by ArgoCD above as they do not require configuration changes. But
-Grafana needs some basic domain name and URL configuration:
+Grafana needs some basic domain name and URL configuration.
+
+Edit `applications/prometheus-stack/values.yaml` and change the following:
 
 ```yaml
 grafana:
@@ -124,7 +133,7 @@ Change `automated` to true in `applications/argo-cd-resources/values.yaml` for t
 You can access Grafana by opening the ingress URL:
 
 ```yaml
-kubectl get ingress -n monitoring -o jsonpath='{.items[*].spec.rules[*].host}' | tr ' ' '\n' | grep grafana | xargs -I {} open "https://{}"
+kubectl get ingress -n monitoring -o jsonpath='{.items[*].spec.rules[*].host}' | tr ' ' '\n' | xargs -I {} open "https://{}"
 ```
 
 Log into Grafana with the username `admin` and password:
@@ -248,7 +257,8 @@ not necessarily supported by the frontend (Open WebUI). It also has a built-in, 
 to debug connections to models.
 
 It is also the place to set up guardrails. We currently ship with a single custom guardrail ensuring that the
-context window for Mistral is not overflowed. It does so by ensuring that the context window is not larger than the model's
+context window for Mistral is not overflowed. It does so by ensuring that the context window is not larger than the
+model's
 maximum context window. So, if you are using another model, you may need to adjust the guardrail configuration.
 
 [LiteLLM](https://docs.litellm.ai/docs/) uses a PostgreSQL database to store the virtual API keys (if used) and usage
@@ -297,8 +307,8 @@ Seal it:
 kubectl create -f local-secrets/litellm-secrets.yaml --dry-run=client -o yaml | kubeseal --cert public-cert.pem --format yaml > templates/sealed-litellm-secrets.yaml
 ```
 
-**NOTE**: If you want to access the web UI, you need to edit `litellm-values.yaml` by enabling ingress and setting a domain
-name to access it. You can use the master key from the `litellm-secrets` secret as the password for the web UI.
+**NOTE**: If you want to access the web UI, you need to edit `litellm-values.yaml` by enabling ingress and setting a
+domain name to access it. You can use the master key from the `litellm-secrets` secret as the password for the web UI.
 
 Change `automated` to true in `applications/argo-cd-resources/values.yaml` for the `litellm` application. Add,
 commit, and push the changes to have Argo deploy LiteLLM automatically.
@@ -381,10 +391,33 @@ controlled through [environment variables](https://docs.openwebui.com/getting-st
 The deployment comes with some default values that match the current AarhusAI setup, but you can change them
 to fit your needs in `values.yaml`.
 
-Also note, that `was-middleware.yaml` found in the openwebui templates folder should be updated to match your municipality's
-accessibility statement(s) (tilgængelighedserklæringer).
+Also note, that `was-middleware.yaml` found in the openwebui templates folder should be updated to match your
+municipality's accessibility statement(s) (tilgængelighedserklæringer).
 
-Create the file `local-secrets/openwebui-secrets.yaml`:
+First you need to update the ingress in `applications/openwebui/values.yaml` to match your domain name. You also have to
+read through this file and update the settings to match your needs.
+
+**Note**: You also need to allow "Sign-up" to allow the creation of the first user as _admin_ in the system (setting
+`ENABLE_SIGNUP` to `True`). You can make another deployment right after to disable the sign-up.
+
+```yaml
+  ingress:
+    enabled: true
+    class: "traefik"
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+      traefik.ingress.kubernetes.io/router.middlewares: openwebui-was-redirect@kubernetescrd
+    host: ai.<FQDN>
+    additionalHosts: [ ]
+    tls:
+      - hosts:
+          - ai.<FQDN>
+        secretName: ai.<FQDN>-tls
+    existingSecret: ""
+    extraLabels: { }
+```
+
+Next create the file `local-secrets/openwebui-secrets.yaml`:
 
 ```yaml
 apiVersion: v1
@@ -425,7 +458,7 @@ stringData:
 Seal it:
 
 ```shell
-kubectl create -f local-secrets/cloudnative-pg-cluster-openwebui-secret.yaml --dry-run=client -o yaml | kubeseal --cert public-cert.pem --format yaml > templates/cloudnative-pg-cluster-openwebui-secret.yaml
+kubectl create -f local-secrets/cloudnative-pg-cluster-openwebui-secret.yaml --dry-run=client -o yaml | kubeseal --cert public-cert.pem --format yaml > templates/sealed-cloudnative-pg-cluster-openwebui-secret.yaml
 ```
 
 Change `automated` to true in `applications/argo-cd-resources/values.yaml` for the `openwebui` application. Add,
