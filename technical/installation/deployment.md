@@ -397,7 +397,7 @@ municipality's accessibility statement(s) (tilgængelighedserklæringer).
 First you need to update the ingress in `applications/openwebui/values.yaml` to match your domain name. You also have to
 read through this file and update the settings to match your needs.
 
-**Note**: You need to allow "Sign-up" to allow the creation of the first user as _admin_ in the system (setting
+**Note**: You also need to allow "Sign-up" to allow the creation of the first user as _admin_ in the system (setting
 `ENABLE_SIGNUP` to `True`). You can make another deployment right after to disable the sign-up.
 
 ```yaml
