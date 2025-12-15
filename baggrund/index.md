@@ -19,7 +19,7 @@ generelt.
 AarhusAI (og dermed erfaringerne beskrevet her) er skabt til Aarhus Kommune og derfor kan der være betragtninger
 omkring beslutninger, governance, ressourcer m.v., som nu skal ses i et nyt lys i arbejdet med OS2ai, hvor flere
 ting vil ske i fællesskabet (og ikke i Aarhus Kommune selv, som ellers var og er det nødvendige udgangspunkt indtil
-OS2ai er en realitet). 
+OS2ai er en realitet).
 
 Med andre ord: Står der fx, at vi i Aarhus Kommune har interne udviklerkapaciteter eller data scientists er det
 ikke nødvendigvis gældende for alle andre kommuner, når dele af udviklingsarbejdet i fremtiden sker gennem
