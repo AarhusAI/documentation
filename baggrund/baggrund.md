@@ -29,6 +29,7 @@ at data behandles lovligt og sikkert.
 AarhusAI er et skridt på vejen mod øget anvendelse af tryg og sikker AI.
 
 ## Teknisk løsning eller forandringsredskab?
+
 Arbejdet med at udnytte potentialerne i moderne, generativ kunstig intelligens kræver indsatser på mange fronter
 – teknisk såvel som organisatorisk og kompetencemæssigt.
 
