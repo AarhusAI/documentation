@@ -10,11 +10,11 @@ kommercielt og teknologidrevet perspektiv uden særlig hensyntagen til det europ
 etiske dimensioner i brugen af teknologien.
 
 Det primære behov, som AarhusAI adresserer, er datasikkerheden og derigennem muligheden for at anvende generativ
-AI i fagnær opgaveløsning med persondata. 
+AI i fagnær opgaveløsning med persondata.
 
 Den globale politiske situation – ikke mindst koblingen mellem amerikansk præsidentpolitik og tech – har skabt
 usikkerhed. Der findes eksempler på services, der pludselig er blevet lukket ned af politiske grunde i USA, og
-lovgivningen giver de amerikanske efterretningstjenester mulighed for at tilgå data, de finder relevante. 
+lovgivningen giver de amerikanske efterretningstjenester mulighed for at tilgå data, de finder relevante.
 
 Denne usikkerhed har ført til et ønske om alternativer til de store amerikanske tech-løsninger, som er blevet
 stærkt politiserede.
@@ -24,7 +24,7 @@ med ambitionen om at skabe et alternativ til big tech-platformene. Det handler g
 og digital suverænitet.
 
 På den lange bane handler indsatsen om at frigøre ressourcer og tid ved at reducere gentagne opgaver og samtidig sikre,
-at data behandles lovligt og sikkert. 
+at data behandles lovligt og sikkert.
 
 AarhusAI er et skridt på vejen mod øget anvendelse af tryg og sikker AI.
 
@@ -32,7 +32,7 @@ Teknisk løsning eller forandringsredskab?
 Arbejdet med at udnytte potentialerne i moderne, generativ kunstig intelligens kræver indsatser på mange fronter
 – teknisk såvel som organisatorisk og kompetencemæssigt.
 
-Med afsæt i Aarhus Kommunes tværgående AI-analyse fra 2024 har vi internt italesat en todeling af generativ 
+Med afsæt i Aarhus Kommunes tværgående AI-analyse fra 2024 har vi internt italesat en todeling af generativ
 AI-feltet: Et spor, der handler om den enkelte medarbejders anvendelse af AI-værktøjer som produktivitets-
 og/eller kvalitetsbooster i dagligdagen og et spor, der handler om specifikke AI-løsninger på specifikke
 forretningsmæssige udfordringer eller ambitioner, ofte domænespecifikke systemer indkøbt hos ekspert-leverandører.
@@ -48,7 +48,7 @@ håndtere data om børn og udsatte borgere. Derfor bevæger organisationen sig i
 og det stiller krav til fælles mål og succeskriterier på tværs.
 
 Hver magistratsafdeling har egen Digitaliseringschef og sammen spiller de aktuelt en central rolle i at definere
-ambitionerne for AarhusAI og for AI arbejdet i kommunen generelt. 
+ambitionerne for AarhusAI og for AI arbejdet i kommunen generelt.
 
 I mange organisationer er det udfordrende at skabe en ensartet praksis omkring anvendelsen af generativ AI.
 AarhusAI søger at imødekomme en række spørgsmål og udfordringer, som følger deraf: Fragmentering kan skabe usikkerhed
@@ -92,6 +92,6 @@ systemer internt i kommunen – altså en indsats i relation til informationsark
 
 De generative løsninger bliver med andre ord ikke bedre end de informationer, de bygger på og derfor kan en indsats
 for at etablere en generel AI-platform ikke nå ordentligt i mål uden også (på et eller andet niveau) at forholde sig
-til kommunens informationsarkitektur omkring data. 
+til kommunens informationsarkitektur omkring data.
 
 Denne del løser AarhusAI ikke.
