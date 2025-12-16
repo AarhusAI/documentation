@@ -13,7 +13,7 @@ brugergrupper og ikke til roller. Derfor har vi oprettet en gruppe der hedder "B
 Builder") der har udviddet rettighederne for de brugere der er i gruppen.
 
 Der en patch der i brugeroverblikket viser rollen "Builder". Derudover har vi i vores OIDC patch lavet en mapning fra
-rollen "Builder" (som vi har i vores AD) til OpenWebUI så en bruger der kommer med rollen "Builder" placeres i gruppen 
+rollen "Builder" (som vi har i vores AD) til OpenWebUI så en bruger der kommer med rollen "Builder" placeres i gruppen
 "Builder" i OpenWebUI.
 
 Under hver enkelt rolle i navigationen kan man læse om de permissions der er tildelt de enkelte roller.
