@@ -34,7 +34,7 @@ sso:
     clientId: "<ID>"
 ```
 
-Next update `applications/openwebui/local-secrets/openwebui-secrets.yaml` with the OIDC_CLIENT_SECRET value from Azure
+Next update `applications/openwebui/local-secrets/openwebui-secrets.yaml` with the `OIDC_CLIENT_SECRET` value from Azure
 AD. See the Deployment.md for more information.
 
 Seal the secret using kubeseal and redeploy the application by committing the changes to the main branch:
