@@ -15,7 +15,7 @@ to the `Builder` group, as this group is responsible for giving permissions for 
 
 ## Configuration Steps
 
-First step is to disable login form and enabled group management, so groups are automatically created and users
+First step is to disable login form and enable group management, so groups are automatically created and users are
 assigned to group on every login. Edit `applications/openwebui/values.yaml` and configure the following values:
 
 ```yaml
