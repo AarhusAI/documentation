@@ -10,8 +10,9 @@ claims from Microsoft OIDC. The default AarhusAI docker
 image [ghcr.io/aarhusai/open-webui](https://ghcr.io/aarhusai/open-webui)
 has been patched with [https://github.com/AarhusAI/open-webui/pull/33](https://github.com/AarhusAI/open-webui/pull/33).
 
-This patch allows configurable mapping of groups and roles from OIDC claims to groups in Open WebUI. It also ensures that the `builder` role from claims is mapped
-to the `Builder` group, as this group is responsible for giving permissions for assistant building and more.
+This patch allows configurable mapping of groups and roles from OIDC claims to groups in Open WebUI. It also ensures
+that the `builder` role from claims is mapped to the `Builder` group, as this group is responsible for giving
+permissions for assistant building and more.
 
 ## Configuration Steps
 
