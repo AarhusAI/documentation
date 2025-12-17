@@ -1,0 +1,27 @@
+version: '3'
+
+# https://taskfile.dev/usage/#env-files
+dotenv: [ '.env.local', '.env' ]
+
+vars:
+  # https://taskfile.dev/reference/templating/
+  BASE_URL: '{{.TASK_BASE_URL | default .COMPOSE_SERVER_DOMAIN | default .COMPOSE_DOMAIN }}'
+  DOCKER_COMPOSE: '{{ .TASK_DOCKER_COMPOSE | default "itkdev-docker-compose" }}'
+
+tasks:
+  default:
+    desc: 'List all tasks'
+    cmds:
+      - task --list-all
+    silent: true
+
+  compose:
+    desc: "Run `docker compose` command. Example: task compose -- up --detach"
+    cmds:
+      - '{{ .DOCKER_COMPOSE }} {{ .CLI_ARGS }}'
+
+  lint:
+    desc: "Run markdown linter"
+    cmds:
+      - task compose -- run --rm markdownlint markdownlint '**/*.md'
+    silent: true
