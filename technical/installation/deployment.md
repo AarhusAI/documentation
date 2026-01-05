@@ -80,17 +80,11 @@ the internal services in the cluster. See the [Authentik](authentik.md) for more
 Now we can install the Argo resources that define the applications and their configuration. But first, we need to
 change the repository URL to our own repository.
 
-Edit `applications/argo-cd-resources/templates/applications.yaml`:
+Edit `applications/argo-cd-resources/values.yaml`:
 
 ```yaml
-spec:
-  source:
-    repoURL: https://github.com/aarhusai/<YOUR REPO>.git
+repoUrl: https://github.com/aarhusai/<YOUR REPO>.git
 ```
-
-Likewise, you need to modify the `sourceRepos` configuration accordingly **in every**
-`applications/argo-cd-resources/templates/projects/*.yaml` file, to ensure that Argo knows which repo to stay
-in sync with.
 
 Now commit the changes to the repository before the next step in Argo installation, which is to install the resources:
 
