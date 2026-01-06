@@ -4,6 +4,7 @@ parent: Baggrund
 ---
 
 # Vi bygger AarhusAI: Teknik, roller og governance
+
 ## Infrastruktur og sprogmodeller
 En vigtig forudsætning er at sikre kontrol over data. En af drivkrafterne i arbejdet var at øge eget indblik i,
 præcis hvor data befinder sig, og hvordan de bliver behandlet – helt ned i infrastrukturen, datacentre m.v.
@@ -32,7 +33,8 @@ med opsætningen af softwareinfrastrukturen (Kubernetes m.v.). Løsningen er bev
 til en anden fysisk infrastruktur, hvis der opstår behov for det. Denne flytbarhed er afgørende for, at vi reducerer
 afhængighed af én løsning eller leverandør.
 
-## Svarkvalitet
+### Svarkvalitet
+
 Forud for AarhusAI har vi i et andet projekt gjort os erfaringer og opnået værdifuld viden omkring svarkvalitet
 og evaluering. Det handler om at kunne vurdere, hvornår/i hvilket omfang, vi kan stole på svarene og sikre
 dokumentation for, at output er baseret på kildemateriale vi selv har bragt ind i systemet. I det projekt udviklede
@@ -40,6 +42,7 @@ vi metoder til at bearbejde og segmentere dokumenter og justere på de mange tek
 der driver en RAG-løsning.
 
 ## Governance og roller
+
 Det er i Aarhus nødvendigt at arbejde med en decentraliseret struktur, så de enkelte magistratsafdelinger kan
 være med til at forme værktøjet til at understøtte netop deres behov. Derfor har vi etableret en ny rolle – de
 såkaldte Builders – der er placeret decentralt i magistratsafdelingen og som i samarbejdet med Product Owner
@@ -57,6 +60,7 @@ rådgivning, slutbrugere, fagpersoner med særlig viden om kildemateriale til en
 specialist osv.
 
 ### Teknisk Systemejer / Product Owner
+
 Der udpeges en Teknisk Systemejer, der har det formelle ansvar og en Product Owner, der har det operationelle
 ansvar. Tilsammen har de to roller ansvaret for vedligehold, support, videreudvikling og støtte til den videre
 udbredelse af AarhusAI på tværs af kommunen i samarbejde med Faglige Systemejere. PO’en koordinerer således alle
@@ -92,6 +96,7 @@ information lagres og kan tilgås fra AarhusAI, altså hvordan systemet og
 informationerne i et nyt Aarhus Intra er ”AI ready” ”by design”.
 
 ### Data Scientist
+
 Data Scientist-rollen får kun tiltagende relevans, hvis AarhusAI skal blive en endnu
 bedre platform.
 
@@ -110,17 +115,20 @@ opgaver i relation hertil. Og så er det proaktivt at se ind i helt nye mulighed
 forretningen før eller siden vil efterspørge – eksempelvis agenter.
 
 ### Udvikler
+
 Udvikler-rollen dækker primært over backend-relaterede opgaver, herunder løbende
 optimering af platformen, evt. Aarhus Kommune-specifik tilpasning og udvikling af
 OS2ai samt at afdække krav til og bygge integrationer til fagsystemer gennem f.eks. nye
 standarder som MCP og A2A.
 
 ### DevOps
+
 Sammen med systemejerskabet følger en række driftsopgaver, som varetages af
 DevOps-rollen i samarbejde med driftsleverandøren. Det er release management,
 fejlsøgning, driftssupport.
 
 ### Faglig Systemejere
+
 Der udpeges en faglig systemejer pr. magistratsafdeling som har ansvaret for den
 magistratsafdelings Builders og som sikrer det løbende engagement og prioritering af
 arbejdet.
@@ -131,6 +139,7 @@ materialer m.v. deles til inspiration – og indarbejder værdiskabende tiltag f
 magistratsafdelinger i egne indsatser.
 
 ### Builders
+
 Det eksisterende korps af Builders holdes decentralt og som udgangspunkt til
 digitaliseringskyndige personer, der besidder de tekniske og processuelle kompetencer,
 der er nødvendig for at skabe brugbare og praksisnære AI specialister – naturligvis i tæt
