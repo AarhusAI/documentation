@@ -30,6 +30,7 @@ Throughout this installation documentation, some values are used multiple times.
 following variables:
 
 * `FQDN`: The fully qualified domain name of the cluster (e.g. aarhus.dk).
+* `CERT_MAIL`: The email address used to request a certificate from Let's Encrypt.
 * `HUGGING_FACE_TOKEN`: The Hugging Face token used to download the model from Hugging Face.
 * `VLLM_API_KEY`: The API key used to communicate with the vLLM service.
 * `LITELLM_MASTER_KEY`: API master key to communicate with LiteLLM.
@@ -108,6 +109,14 @@ Edit `applications/argo-cd-resources/values.yaml`:
 ```yaml
 repoUrl: https://github.com/aarhusai/<YOUR REPO>.git
 ```
+
+Edit `applications/cert-manager/templates/cluster-issuer.yaml` and change the email address to your own:
+
+```yaml
+spec:
+  acme:
+    email: <CERT_MAIL>
+ ```
 
 Now commit the changes to the repository before the next step in Argo installation, which is to install the resources:
 
