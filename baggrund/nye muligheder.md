@@ -51,7 +51,7 @@ AI Screeningsværktøjet – detaljerne omkring en given use case før vi implem
 Det handler bl.a. også om at støtte forretningen i at vælge den rette generative model til opgaven, foretage
 systematisk evaluering af samme konkrete prompts på forskellige modeller, hvor svarene kan give nogle pejlemærker
 ift. modellernes grundlæg-
-gende formuleringsevner på dansk, verbositet, formuleringsevner på domænesprog m.v. 
+gende formuleringsevner på dansk, verbositet, formuleringsevner på domænesprog m.v.
 
 Arbejdet vil resultere i en form for internt generativ AI modelkatalog eller ”aktuelt situationsbillede” på mulige
 modeller i Aarhus Kommune og som løbende skal vedligeholdes i takt med at nye modeller kommer til. Det kræver ressourcer
