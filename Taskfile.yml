@@ -25,3 +25,8 @@ tasks:
     cmds:
       - task compose -- run --rm markdownlint markdownlint '**/*.md'
     silent: true
+
+  open:
+    desc: Open the site in the browser
+    cmds:
+      - open http://{{ .BASE_URL }}
