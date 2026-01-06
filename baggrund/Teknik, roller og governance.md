@@ -1,5 +1,5 @@
 ---
-title: Vi bygger AarhusAI: Teknik, roller og governance
+title: 'Vi bygger AarhusAI: Teknik, roller og governance'
 parent: Baggrund
 ---
 

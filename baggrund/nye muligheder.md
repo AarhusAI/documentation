@@ -1,5 +1,5 @@
 ---
-title: Vi har AarhusAI: Nye muligheder, arbejdsgange og opgaver
+title: 'Vi har AarhusAI: Nye muligheder, arbejdsgange og opgaver'
 parent: Baggrund
 ---
 
