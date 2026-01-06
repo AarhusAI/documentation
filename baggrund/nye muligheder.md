@@ -23,20 +23,19 @@ Ambitionen er, at AarhusAI bliver et varigt element i kommunens digitale værkt�
 både bred forankring og ansvarlig anvendelse af AI generelt på tværs af kommunens mange enheder og her kan AarhusAI være
 en grundsten på teknisk såvel som organisatorisk plan.
 
-
 På længere sigt kan AarhusAI blive en byggesten i nye arbejdsformer – ikke kun digitalt, men også som basis for
 automatisering, robotteknologi og beslutningsstøtte. Men denne fremtid kræver fortsat ansvarlighed, klare rammer
 og en menneskelig forståelse af, hvordan teknologien bruges.
 
 Den første feedback har bekræftet os i en række forhold:
 
-•	At vidensdeling og dialog i Builder gruppen, er en vigtig forudsætning for
+• At vidensdeling og dialog i Builder gruppen, er en vigtig forudsætning for
 platformens succes
-•	At der bør sidde implementeringsbistand klar i opstartsfasen, til at støtte de
+• At der bør sidde implementeringsbistand klar i opstartsfasen, til at støtte de
 udfordringer, der måtte være, når der skal bygges en ny chatbot. For at Builders
 ikke mister modet og udbredelsen dermed mister momentum
-•	At governance og organisering rundt om platformen er vigtig og tydelig
-•	At entydigt systemejerskab og det nødvendige setup rundt om AarhusAI
+• At governance og organisering rundt om platformen er vigtig og tydelig
+• At entydigt systemejerskab og det nødvendige setup rundt om AarhusAI
 generelt er vigtigt; organisering, kompetence, økonomi, support m.v.
 
 Forud for implementeringen af en ønskværdig use case ligger et analyse- og dokumen-
