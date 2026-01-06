@@ -24,6 +24,29 @@ given service can be installed. Some services also require keys/secrets from one
 Also, because all configuration is stored in GitOps as code, you will need to update secrets and URLs to match your
 domain and setup. This document will guide you through the process of setting up AarhusAI.
 
+## Variables
+
+Throughout this installation documentation, some values are used multiple times. These values are defined in the
+following variables:
+
+* `FQDN`: The fully qualified domain name of the cluster (e.g. aarhus.dk).
+* `HUGGING_FACE_TOKEN`: The Hugging Face token used to download the model from Hugging Face.
+* `VLLM_API_KEY`: The API key used to communicate with the vLLM service.
+* `LITELLM_MASTER_KEY`: API master key to communicate with LiteLLM.
+* `DOCINGESTION_API_KEY`: API key used to communicate with the document ingestion service.
+* `LITELLM_DATABASE_PASSWORD`: Password for the LiteLLM database.
+* `SEARXNG_SECRET`: Secret for the SearXNG service.
+* `WEBUI_SECRET`: Secret for the Open WebUI service.
+* `WEBUI_DATABASE_PASSWORD`: Password for the Open WebUI database.
+
+They are used with this notation `<LITELLM_MASTER_KEY>` in the configuration snippets.
+
+If you want to randomly generate keys and password, you can use this command:
+
+```shell
+echo "$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 32 | head -n 1)"
+```
+
 ## Bootstrap continuous deployment
 
 The first step is
@@ -150,13 +173,13 @@ Read more about [sealed secrets](https://github.com/bitnami-labs/sealed-secrets)
 Follow the [kubeseal](https://github.com/bitnami-labs/sealed-secrets?tab=readme-ov-file#kubeseal) install guide based on
 which system you are on to install the CLI tool.
 
-### Seal a secret (example)
+### Seal a secret (just an example)
 
 You can place the unsealed secret anywhere you want, but this repository has the path `applications/**/local-secrets`
 in `.gitignore`. So with this in mind, the `kubeseal` commands would be in the form:
 
 ```shell
-kubectl create -f local-secrets/<NAME_OF_APPLICATION>-secret.yaml --dry-run=client -o yaml | kubeseal --format yaml > templates/sealed-<NAME_OF_APPLICATION>-secret.yaml
+kubectl create -f local-secrets/example-secrets.yaml --dry-run=client -o yaml | kubeseal --format yaml > templates/sealed-example-secrets.yaml
 ```
 
 With an unsealed secret like this (here for LiteLLM):
@@ -167,17 +190,10 @@ kind: Secret
 type: Opaque
 metadata:
   creationTimestamp: null
-  name: litellm-secrets
-  namespace: litellm
+  name: example-secrets
+  namespace: example
 stringData:
-  PROXY_MASTER_KEY: <KEY>
-  CA_VLLM_LOCAL_API_KEY: <KEY>
-```
-
-To generate a new random key, use this command:
-
-```shell
-echo "$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 32 | head -n 1)"
+  SECRET_NAME: super_secret_key
 ```
 
 ## vLLM (Mistral 24B model)
@@ -199,7 +215,7 @@ metadata:
   name: hf-secret
   namespace: vllm
 stringData:
-  TOKEN: <TOKEN>
+  TOKEN: <HUGGING_FACE_TOKEN>
 ```
 
 Seal it:
@@ -220,7 +236,7 @@ metadata:
   name: vllm-secret
   namespace: vllm
 stringData:
-  KEY: <GENERATED API-KEY>
+  KEY: <VLLM_API_KEY>
 ```
 
 Seal it:
@@ -260,7 +276,7 @@ metadata:
   namespace: litellm
 stringData:
   username: litellm
-  password: <GENERATED PASSWORD>
+  password: <LITELLM_DATABASE_PASSWORD>
 ```
 
 Seal it:
@@ -281,8 +297,8 @@ metadata:
   name: litellm-secrets
   namespace: litellm
 stringData:
-  PROXY_MASTER_KEY: sk-<GENERATE RANDOM KEY>
-  CA_VLLM_LOCAL_API_KEY: <SET VLLM SECRET>
+  PROXY_MASTER_KEY: <LITELLM_MASTER_KEY>
+  CA_VLLM_LOCAL_API_KEY: <VLLM_API_KEY>
 ```
 
 Seal it:
@@ -318,7 +334,7 @@ metadata:
   name: secrets
   namespace: doc-ingestion
 stringData:
-  API_KEY: sk-<RANDOM GENERATED KEY>
+  API_KEY: <DOCINGESTION_API_KEY>
 ```
 
 Seal it:
@@ -355,7 +371,7 @@ metadata:
   name: searxng-secrets
   namespace: searxng
 stringData:
-  SEARXNG_SECRET: <RANDOM GENERATED SECRET>
+  SEARXNG_SECRET: <SEARXNG_SECRET>
 ```
 
 Seal it:
@@ -412,10 +428,10 @@ metadata:
   name: openwebui-secrets
   namespace: openwebui
 stringData:
-  OPENAI_API_KEY: <LITELLM API KEY>
-  WEBUI_SECRET_KEY: <RANDOM GENERATED SECRET>
-  RAG_OPENAI_API_KEY: <EMBEDDING API KEY>
-  EXTERNAL_DOCUMENT_LOADER_API_KEY: <DOC INGESTION ROUTE>
+  WEBUI_SECRET_KEY: <WEBUI_SECRET_KEY>
+  OPENAI_API_KEY: <LITELLM_MASTER_KEY>
+  RAG_OPENAI_API_KEY: <VLLM_API_KEY>
+  EXTERNAL_DOCUMENT_LOADER_API_KEY: <DOCINGESTION_API_KEY>
 ```
 
 Seal it:
@@ -436,7 +452,7 @@ metadata:
   namespace: openwebui
 stringData:
   username: openwebui
-  password: <GENERATED PASSWORD>
+  password: <WEBUI_DATABASE_PASSWORD>
 ```
 
 Seal it:
