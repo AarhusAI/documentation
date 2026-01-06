@@ -63,7 +63,7 @@ kubectl port-forward svc/argo-cd-argocd-server -n argo-cd 8443:443
 You can ensure that ArgoCD is running by opening the ingress URL:
 
 ```shell
-open 127.0.0.1:8443
+open http://127.0.0.1:8443
 ```
 
 You can log into the web-based user interface with the username `admin` and get the password with this command:
