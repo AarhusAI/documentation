@@ -6,6 +6,7 @@ parent: Baggrund
 # Vi bygger AarhusAI: Teknik, roller og governance
 
 ## Infrastruktur og sprogmodeller
+
 En vigtig forudsætning er at sikre kontrol over data. En af drivkrafterne i arbejdet var at øge eget indblik i,
 præcis hvor data befinder sig, og hvordan de bliver behandlet – helt ned i infrastrukturen, datacentre m.v.
 
@@ -47,7 +48,7 @@ Det er i Aarhus nødvendigt at arbejde med en decentraliseret struktur, så de e
 være med til at forme værktøjet til at understøtte netop deres behov. Derfor har vi etableret en ny rolle – de
 såkaldte Builders – der er placeret decentralt i magistratsafdelingen og som i samarbejdet med Product Owner
 identificerer use cases, best practices og forbedringsforslag til udvidelser af platformen, der er behov for at
-sætte i gang centralt. 
+sætte i gang centralt.
 
 Buildernetværket har også fungeret som en måde at validere features. De var de første der blev lukket ind i
 prototypen og på den måde fik vi en masse værdifuld feedback fra nogen, der efterfølgende kunne være med til at
