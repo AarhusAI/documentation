@@ -16,8 +16,8 @@ The release process:
 1. AarhusAI builds new images and updates the Docker Compose setup
    in [https://github.com/AarhusAI/aarhusai-docker](https://github.com/AarhusAI/aarhusai-docker) for development and
    staging environments.
-2. We update the Helm charts
-   at [https://github.com/AarhusAI/helm-deployments](https://github.com/AarhusAI/helm-deployments) and tag the
+2. AarhusAI updates the Helm charts
+   at [https://github.com/AarhusAI/helm-deployments](https://github.com/AarhusAI/helm-deployments) and tags the
    repository, making an official release of AarhusAI.
 3. The demo site at [https://demo.os2ai.dk/](https://demo.os2ai.dk/) is updated by manually applying the Helm chart
    changes from the template repository.
