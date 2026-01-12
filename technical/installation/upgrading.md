@@ -33,7 +33,7 @@ on the above changes.
 ## Release versions
 
 We use semantic versioning for releases, based on Open WebUI. As we may release patches and changes to config and
-application more often than Open WebUI, we prefix the Open WebUI version with a counter.
+application more often than Open WebUI, we suffix the Open WebUI version with a counter.
 
 ```text
 0.6.43 -> 0.6.43-1 -> 0.6.43-2 -> 0.6.43-3 
