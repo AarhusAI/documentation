@@ -12,3 +12,7 @@ sprogmoddelen overholder etiske, sproglige og persondatamæssige begrænsninger.
 
 I AarhusAI findes der pt. kun en guardrail der sikrer et flydende context vindue (så systemet ikke laver en fejl
 når contexten bliver fyldt).
+
+Man kan finde dem her:
+[https://github.com/AarhusAI/helm-deployments/blob/develop/applications/litellm/templates/message-trimming-config.yaml#L8](https://github.com/AarhusAI/helm-deployments/blob/develop/applications/litellm/templates/message-trimming-config.yaml#L8)
+[https://github.com/AarhusAI/helm-deployments/blob/develop/applications/litellm/litellm-values.yaml#L105](https://github.com/AarhusAI/helm-deployments/blob/develop/applications/litellm/litellm-values.yaml#L105)
