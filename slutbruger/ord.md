@@ -5,7 +5,8 @@ parent: Slutbruger
 
 # Ordforråd
 
-Når man arbejder med AI er der en række forskellige ord og begreber, nogen bruges meget forskelligt. Nedenfor har vi listet en række ord og en definition som vi anvender dem i Aarhus Kommune.
+Når man arbejder med AI er der en række forskellige ord og begreber, nogen bruges meget forskelligt.
+Nedenfor har vi listet en række ord og en definition som vi anvender dem i Aarhus Kommune.
 
 |Default chat|Tilgængelig for alle, Ad-hoc brug, Kan måske være ”indgang” til at finde den rette assistent eller specialist?|
 |Assistent|Tilgængelige for alle, Hjælp til administrativ opgaveudførsel, Eks. Skriveassistent:
@@ -18,5 +19,3 @@ Eks.
 • Projektmodel i MTM
 • Programnoter til koncert i MKB
 • Ny-i-job-bot til MSO|
-
-
