@@ -4,7 +4,7 @@ has_children: false
 nav_order: 6
 ---
 
-# {{ OpenWebUI, versions and license }}
+# OpenWebUI, versions and license
 
 Aarhus AI is built on OpenWebUI. We have forked the project, but continuously updates the OpenWebUI version, keeping
 up with releases from core.
