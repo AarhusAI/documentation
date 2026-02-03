@@ -1,7 +1,6 @@
 ---
 title: OpenWebUI
-has_children: false
-nav_order: 6
+parent: Admin
 ---
 
 # OpenWebUI, versions and license
