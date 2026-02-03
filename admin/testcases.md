@@ -2,12 +2,13 @@
 title: Testcases
 parent: Admin
 ---
+<!-- markdownlint-disable MD055 -->
 
 # Testcases
 
 Vi anvender en række testcases når der testes en ny release.
 De er lavet ud fra hvad der er forretningskritisk funktionalitet, og hvilke udfordringer vi har haft i løsningen.
-<!-- markdownlint-disable MD055 -->
+
 | Tester     | Område         | Test scenarie            | Test steps                                                                                                                      | System tilstand                                | Test data                               | Forventet resultat                                                                                                                                                                                                                                                                                   | Eksempel                                          | Resultat | Test status |
 | ---------- | -------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | -------- | ----------- |
 | admin      | login          | Login - admin            | Åbn [https://stgai.itkdev.dk/](https://stgai.itkdev.dk/) log ind via AD med en bruger der har administrator adgang             | Ikke logget ind, incognito browser             |                                         | Logget ind som administrator bruger                                                                                                                                                                                                                                                                  |                                                   |          |             |
