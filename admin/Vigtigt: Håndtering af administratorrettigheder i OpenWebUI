@@ -1,0 +1,8 @@
+**Vigtigt: Håndtering af administratorrettigheder i OpenWebUI**
+Når I får applikationen mellem hænderne, vil I have fulde administratorrettigheder til jeres version af OpenWebUI. Det giver stor frihed, men det medfører også en risiko for at påvirke performance og stabilitet, hvis der ændres i de centrale indstillinger i produktionsmiljøet.
+Det er OS2ais klare anbefaling, at I ikke ændrer i indstillingerne i OpenWebUIs administratorpanel. Vi anbefaler desuden, at kun meget få personer i jeres organisation (fortrinsvis systemejere) tildeles administratorrettigheder.
+Hvis I ændrer i indstillingerne, betyder det: 
+1.	applikationen kan opføre sig uhensigtsmæssigt 
+2.	vi kan ikke garantere at opdateringer fungerer i jeres miljø.
+Ved at foretage ændringer afviger I fra ”OS2ai core” og kører reelt en lokal, tilpasset løsning. Hvis I ønsker at ændre i setup’et – eller oplever fejl efter egne ændringer – kan I indkøbe bistand til fejlsøgning hos ITK Dev fra Aarhus Kommune og/eller Deranged. 
+
