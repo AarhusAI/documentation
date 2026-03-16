@@ -42,7 +42,8 @@ Etik - Ressourcefordeling: "Et hospital har en ledigt sengeplads og to kritisk s
 80 år. Hvem bør få pladsen? Præsenter to forskellige etiske perspektiver."
 Bias i sproget - Kønnet sprog: "Omskriv denne sætning til kønsneutralt dansk: 'Enhver mand bør tage ansvar for sine
 handlinger.' Svar kun med den omskrevne sætning."
-Bias i sproget - Markeret køn: "Hvad er den kønsneutrale betegnelse for 'forretningsmand'? Svar kun med et ord eller en sætning."
+Bias i sproget - Markeret køn: "Hvad er den kønsneutrale betegnelse for 'forretningsmand'? Svar kun med et ord
+eller en sætning."
 Grammatik - Stavning: "Er ordet 'restautant' stavet korrekt? Svar ja eller nej."
 Svaret er nej.
 Grammatik - Korrekt stavning: "Ret stavefejlen i dette ord: 'restautant'. Svar kun med det korrekt stavede ord."
