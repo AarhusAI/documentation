@@ -15,8 +15,8 @@ fornemmelse vil vi gerne have underbygget med nogle tests - så vi ved skifte ti
 bedre.
 I Aarhus arbejder vi forsat med hvordan vi gør det bedst. Vi anvender et OpenSource værktøj der hedder promptfoo
 [https://www.promptfoo.dev/](https://www.promptfoo.dev/). Her har vi primært arbejdet med at teste sprogmodellens
-værdisæt/bias og evnen til at være logisk, skrive på dansk, grammatik mv. Jeg har anvendt Claude til at hjælpe med
-at skrive testcases - og evalueret og ændret i dem i samarbejde med Claude. Jeg har anvendt Promptfoo til at udføre
+værdisæt/bias og evnen til at være logisk, skrive på dansk, grammatik mv. Vi har anvendt Claude til at hjælpe med
+at skrive testcases - og evalueret og ændret i dem i samarbejde med Claude. Vi har anvendt Promptfoo til at udføre
 evalueringerne.
 
 ## Testcases - almindelig evaluering
