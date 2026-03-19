@@ -21,13 +21,7 @@ Opgaven med release management håndteres af en release manager, det er beskreve
 6. Release Manager skriver ud i OS2Samtale Release tråden at den nye release er klar til test, anvendere har 7 dage
    til at teste før releasen godkendes
 7. Core team laver release og opdaterer changelog
-8.  Release Manager skriver ud i OS2Samtale Release tråden at den nye release er godkendt og klar til at blive rullet
+8. Release Manager skriver ud i OS2Samtale Release tråden at den nye release er godkendt og klar til at blive rullet
    ud.
 
 <img src="images/releaseman.png" alt="figur med ovenstående proces"/>
-
-
-
-
-
-
