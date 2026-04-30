@@ -59,7 +59,7 @@ en oversigt over dine tilgængelige specialister/assistenter.
 
 ---
 
-### Trin 3: Åbn fanen "Tools" (Værktøjer)
+### Trin 3: Find "Tools" (Værktøjer)
 
 - Scroll ned til du finder "Værktøjer" / Tools og vælg det værktøj du gerne vil bruge. Til søgningen hedder værktøjet "Websearch".
 
