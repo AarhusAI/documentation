@@ -67,14 +67,14 @@ Sæt flueben ud for søgeværktøjet for at aktivere det på specialisten.
 
 ---
 
-### Trin 5: Gem ændringerne
+### Trin 4: Gem ændringerne
 
 Klik på **Save** / **Gem** nederst på siden. Specialisten er nu konfigureret
 til at bruge søgeværktøjet agentisk.
 
 ---
 
-### Trin 6: Test det
+### Trin 5: Test det
 
 Gå tilbage til chatten og vælg din specialist. Stil et spørgsmål, der kræver
 opdateret viden – fx om aktuelle begivenheder. Du bør nu se, at modellen
