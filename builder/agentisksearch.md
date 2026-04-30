@@ -1,7 +1,6 @@
 ---
-title: Agentisk søgeværktøj
-layout: default
-nav_order: 1
+title: Agentisk søgeværktøj (tool)
+parent: Builder
 ---
 
 ## Hvad betyder "agentisk"?
