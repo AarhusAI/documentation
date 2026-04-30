@@ -121,7 +121,3 @@ generelle forklaringer, som den allerede kender svaret på.
 | Modellen søger ikke automatisk | Tjek at søgeværktøjet er aktiveret under Tools for den pågældende specialist |
 | Søgningen giver ingen resultater | Kontrollér at søgeværktøjets API-nøgle eller forbindelse er korrekt konfigureret i Open WebUI |
 | Modellen ignorerer søgeresultater | Prøv at præcisere i systemprompten, at modellen aktivt skal bruge søgeværktøjet |
-
----
-
-Guide udarbejdet til internt brug – Open WebUI med agentisk søgeværktøj
