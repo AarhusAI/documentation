@@ -61,19 +61,7 @@ en oversigt over dine tilgængelige specialister/assistenter.
 
 ### Trin 3: Åbn fanen "Tools" (Værktøjer)
 
-Inde i modelindstillingerne finder du en række faner øverst. Klik på fanen
-**Tools** eller **Værktøjer**.
-
----
-
-### Trin 4: Aktivér søgeværktøjet
-
-Du vil se en liste over tilgængelige værktøjer. Find søgeværktøjet – det
-hedder typisk noget i stil med:
-
-- `web_search`
-- `Search`
-- eller det navn, I har givet jeres eget søgeværktøj
+- Scroll ned til du finder "Værktøjer" / Tools og vælg det værktøj du gerne vil bruge. Til søgningen hedder værktøjet "Websearch".
 
 Sæt flueben ud for søgeværktøjet for at aktivere det på specialisten.
 
