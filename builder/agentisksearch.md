@@ -61,7 +61,8 @@ en oversigt over dine tilgængelige specialister/assistenter.
 
 ### Trin 3: Find "Tools" (Værktøjer)
 
-- Scroll ned til du finder "Værktøjer" / Tools og vælg det værktøj du gerne vil bruge. Til søgningen hedder værktøjet "Websearch".
+- Scroll ned til du finder "Værktøjer" / Tools og vælg det værktøj du gerne vil bruge. Til søgningen hedder værktøjet "
+  Websearch".
 
 Sæt flueben ud for søgeværktøjet for at aktivere det på specialisten.
 
@@ -74,7 +75,28 @@ til at bruge søgeværktøjet agentisk.
 
 ---
 
-### Trin 5: Test det
+### Trin 5: System prompt
+
+Opdater din specialists system prompt så modellen vejledes til at søge ved usikkerhed. Kopiér og tilpas følgende:
+
+**System prompt eksempel:**
+
+```markdown
+## Websøgning – retningslinjer
+
+- Brug websøgning når:
+    - Du er usikker på et faktum eller en oplysning.
+    - Spørgsmålet vedrører aktuelle begivenheder, love, regler eller datoer.
+    - Din vidensbase kan være forældet.
+- Brug **ikke** websøgning til generiske skriveopgaver, brainstorming eller omformulering, hvor brugerens eget input er
+  grundlaget.
+- Angiv altid kilden, når du baserer et svar på en websøgning, fx:
+    - "Ifølge [kilde] (søgt d. {{CURRENT_DATE}})..."
+```
+
+---
+
+### Trin 6: Test det
 
 Gå tilbage til chatten og vælg din specialist. Stil et spørgsmål, der kræver
 opdateret viden – fx om aktuelle begivenheder. Du bør nu se, at modellen
@@ -103,8 +125,8 @@ generelle forklaringer, som den allerede kender svaret på.
 
 ## Fejlfinding
 
-| Problem | Mulig løsning |
-| --- | --- |
-| Modellen søger ikke automatisk | Tjek at søgeværktøjet er aktiveret under Tools for den pågældende specialist |
-| Søgningen giver ingen resultater | Kontrollér at søgeværktøjets API-nøgle eller forbindelse er korrekt konfigureret i Open WebUI |
-| Modellen ignorerer søgeresultater | Prøv at præcisere i systemprompten, at modellen aktivt skal bruge søgeværktøjet |
+| Problem                           | Mulig løsning                                                                                 |
+|-----------------------------------|-----------------------------------------------------------------------------------------------|
+| Modellen søger ikke automatisk    | Tjek at søgeværktøjet er aktiveret under Tools for den pågældende specialist                  |
+| Søgningen giver ingen resultater  | Kontrollér at søgeværktøjets API-nøgle eller forbindelse er korrekt konfigureret i Open WebUI |
+| Modellen ignorerer søgeresultater | Prøv at præcisere i systemprompten, at modellen aktivt skal bruge søgeværktøjet               |
