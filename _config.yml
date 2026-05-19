@@ -37,5 +37,10 @@ callouts:
 # Makes Aux links open in a new tab. Default is false
 aux_links_new_tab: true
 
+# Enable Mermaid diagrams in fenced code blocks tagged `mermaid`.
+# https://just-the-docs.com/docs/ui-components/code/#mermaid-diagram-code-blocks
+mermaid:
+  version: "11.4.1"
+
 kramdown:
   syntax_highlighter: coderay
