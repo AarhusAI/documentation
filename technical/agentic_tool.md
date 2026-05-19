@@ -1273,8 +1273,8 @@ you're stuck. All `retrieval-agent/...` paths below link to `main` on GitHub.
 | [`retrieval-agent/.env.example`][ra-envexample]                   | Documented env var template                                                                         |
 | [`retrieval-agent/README.md`][ra-readme]                          | Public-facing API docs and config reference                                                         |
 | [`retrieval-agent/CLAUDE.md`][ra-claude]                          | Non-obvious internals worth capturing for future maintainers                                        |
-| `aarhusai-docker/docker-compose.yml` (service `retrieval`)        | Dev embedding pattern in the parent stack                                                           |
-| `aarhusai-docker/docker-compose.server.yml` (service `retrieval`) | Production embedding pattern with `restart: unless-stopped`                                         |
+| [`aarhusai-docker/docker-compose.yml`][ad-compose]                | Dev embedding pattern in the parent stack (service `retrieval`)                                     |
+| [`aarhusai-docker/docker-compose.server.yml`][ad-compose-server]  | Production embedding pattern with `restart: unless-stopped` (service `retrieval`)                   |
 
 [ra-dockerfile]: https://github.com/AarhusAI/retrieval-agent/blob/main/Dockerfile
 
@@ -1296,6 +1296,10 @@ you're stuck. All `retrieval-agent/...` paths below link to `main` on GitHub.
 
 [ra-pipeline]: https://github.com/AarhusAI/retrieval-agent/blob/main/app/services/pipeline.py
 
+[ra-agent]: https://github.com/AarhusAI/retrieval-agent/blob/main/app/services/agent.py
+
+[ra-qg]: https://github.com/AarhusAI/retrieval-agent/blob/main/app/services/query_generation.py
+
 [ra-conftest]: https://github.com/AarhusAI/retrieval-agent/blob/main/tests/conftest.py
 
 [ra-envexample]: https://github.com/AarhusAI/retrieval-agent/blob/main/.env.example
@@ -1303,3 +1307,7 @@ you're stuck. All `retrieval-agent/...` paths below link to `main` on GitHub.
 [ra-readme]: https://github.com/AarhusAI/retrieval-agent/blob/main/README.md
 
 [ra-claude]: https://github.com/AarhusAI/retrieval-agent/blob/main/CLAUDE.md
+
+[ad-compose]: https://github.com/AarhusAI/aarhusai-docker/blob/main/docker-compose.yml
+
+[ad-compose-server]: https://github.com/AarhusAI/aarhusai-docker/blob/main/docker-compose.server.yml
