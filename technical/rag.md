@@ -34,8 +34,10 @@ at query time.
 Why the change:
 
 - **Control over extraction and chunking.** The ingestion-service runs a [Haystack v2](https://haystack.deepset.ai/)
-  pipeline with pluggable extraction engines (Tika, Kreuzberg, pypdf, …) and chunking strategies (token, markdown,
-  sentence, …) selected by configuration.
+  pipeline with pluggable extraction engines (`tika`, `kreuzberg`, `pypdf`, `docling`, `unstructured`) and chunking
+  strategies (token, markdown, sentence, …) selected by configuration. A content-based `auto` mode additionally routes
+  layout-bound documents (flowcharts, diagrams, scanned forms) to a multimodal **vision** path (`vision-llm` /
+  `hybrid-diagram`) while everything else takes a plain text extractor.
 - **Hybrid search and reranking.** Ingestion can write a sparse vector alongside the dense one, letting retrieval use
   Qdrant's native RRF hybrid query plus optional cross-encoder reranking.
 - **Agentic retrieval.** The retrieval-agent can wrap search in a [PydanticAI](https://ai.pydantic.dev/) loop that
@@ -69,7 +71,9 @@ flowchart TB
   end
 
   S3[("S3 / MinIO<br/>raw files")]
-  SIDE["Tika / Kreuzberg<br/>extraction sidecar"]
+  SIDE["Tika / Kreuzberg<br/>text extraction sidecars"]
+  GOT["Gotenberg<br/>office→PDF render sidecar"]
+  VLM["Vision LLM endpoint<br/>(multimodal, VISION_LLM_*)"]
   EMB["Embedding endpoint<br/>(embed.itkdev.dk / TEI / fastembed)"]
   LLM["LiteLLM proxy<br/>(agent + query generation)"]
   RRK["Reranker endpoint<br/>(embed.itkdev.dk /v1/rerank)"]
@@ -82,6 +86,8 @@ flowchart TB
 
   ING -->|fetch by key| S3
   ING -->|HTTP extract| SIDE
+  ING -.vision engines.-> GOT
+  ING -.vision engines.-> VLM
   ING -->|embed docs| EMB
   ING -->|write points| QD
 
@@ -91,8 +97,10 @@ flowchart TB
   RET -->|search points| QD
 ```
 
-Solid arrows are always-on; dashed arrows are optional (the LLM is only consulted in agentic mode or when query
-generation is enabled; the reranker only when `ENABLE_RERANKING` is enabled).
+Solid arrows are always-on; dashed arrows are optional. On the ingestion side, Gotenberg and the Vision LLM endpoint
+are only used when a vision engine is selected (`vision-llm`, `hybrid-diagram`, or an `auto`-routed diagram). On the
+retrieval side, the LLM is only consulted in agentic mode or when query generation is enabled, and the reranker only
+when `ENABLE_RERANKING` is enabled.
 
 ## 3. The shared Qdrant contract
 
@@ -112,10 +120,12 @@ The settings that must agree across ingestion-service and retrieval-agent:
 | Sparse model | `SPARSE_EMBEDDING_MODEL` (when sparse on) | `SPARSE_QUERY_MODEL` (when hybrid on) | Sparse query vectors must match the indexed ones |
 
 **Multitenancy.** Every chunk is written with a `meta.collection_name` payload (e.g. `file-abc`, or a knowledge-base
-name) and Qdrant is configured for per-tenant subgraphs keyed on that field
-(`hnsw_config={"m": 0, "payload_m": 16}`, with the keyword payload index created at ingestion startup). At query time
-the retrieval-agent passes `collection_names` and filters on `meta.collection_name ∈ collection_names`, so one Open
-WebUI knowledge base never bleeds into another even though they share one physical collection.
+name) and Qdrant is configured for per-tenant subgraphs keyed on that field (`hnsw_config={"m": 0, "payload_m": 16}`).
+The ingestion-service bootstraps the supporting keyword payload indexes at startup: `meta.collection_name` (the tenant
+key, `is_tenant=True`), `meta.collection_type`, and `meta.languages` (ISO 639-1 codes surfaced by Kreuzberg, enabling
+language filtering). At query time the retrieval-agent passes `collection_names` and filters on
+`meta.collection_name ∈ collection_names`, so one Open WebUI knowledge base never bleeds into another even though they
+share one physical collection.
 
 > The dense embedding model is the contract that breaks most quietly. If ingestion indexed with
 > `intfloat/multilingual-e5-large` and `"passage: "` prefixes, the retrieval-agent must query with the *same* model and
@@ -125,7 +135,10 @@ WebUI knowledge base never bleeds into another even though they share one physic
 
 Open WebUI uploads the raw file to S3/MinIO first, then calls `PUT /api/v1/ingest` with the bucket and key (a multipart
 body is the fallback for direct uploads). The S3 path is preferred because it keeps large files off the FastAPI
-worker's heap.
+worker's heap. Requests are gated before any work happens: a per-`file_id` lock serializes concurrent ingests of the
+same file, `MAX_UPLOAD_BYTES` (100 MB) caps both multipart parts and S3 fetches (checked via `head_object`), the
+`S3_ALLOWED_BUCKETS` allow-list restricts which buckets may be read, and the caller's `collection_name` is validated
+against the `user_id` / `file_id` it claims.
 
 The request handler hands the file to a Haystack v2 pipeline built once at startup and cached as module state:
 
@@ -143,28 +156,86 @@ flowchart LR
   class SE optional;
 ```
 
-1. **Convert** - turn the raw file into Haystack `Document`s. The engine is chosen by `EXTRACTION_ENGINE`: `kreuzberg`
-   are HTTP sidecars in the parent stack, `pypdf` is in-process, `docling`/`unstructured` need optional
-   dependencies. Kreuzberg additionally surfaces document metadata (title, authors, languages) and renders tables as
-   Markdown.
-2. **Chunk** - slice documents by `CHUNK_SPLIT_BY`. The default `token` mode measures chunk size in the embedding
-   model's actual tokens (important for e5-large's 512-token cap once the `"passage: "` prefix is added); `markdown`
-   mode splits on heading hierarchy and records a heading breadcrumb; `word`/`sentence`/`passage` use Haystack's
-   built-in splitter. Every chunk gets a sequential `meta.split_id`.
+1. **Convert** - turn the raw file into Haystack `Document`s. The engine is chosen by `EXTRACTION_ENGINE`: `tika` and
+   `kreuzberg` are HTTP sidecars in the parent stack, `pypdf` is in-process (PDF-only), `docling`/`unstructured` need
+   optional dependencies, and `vision-llm`/`hybrid-diagram` are the multimodal vision engines. `auto` is not an engine
+   but a routing *mode* that picks one per document. Kreuzberg additionally surfaces document metadata (title, authors,
+   languages) and renders tables as Markdown. See [Vision extraction and content-based
+   routing](#vision-extraction-and-content-based-routing) below.
+2. **Chunk** - slice documents by `CHUNK_SPLIT_BY` (deployed default `markdown`; code default `token`). `token` mode
+   measures chunk size in the embedding model's actual HuggingFace tokens (important for e5-large's 512-token cap once
+   the `"passage: "` prefix is added); `markdown` mode splits on heading hierarchy first, records the heading
+   breadcrumb in `meta.headers`, then token-packs each section over `CHUNK_SIZE`; `word`/`sentence`/`passage` use
+   Haystack's built-in splitter. `CHUNK_SIZE` (400) and `CHUNK_OVERLAP` (80) bound chunk length, and the tokenizer is
+   `TOKENIZER_MODEL` (falling back to `EMBEDDING_MODEL`) pinned to `TOKENIZER_REVISION` in deployments. Every chunk gets
+   a sequential `meta.split_id`.
 3. **Embed (dense)** - required. `EMBEDDING_PROVIDER` selects `openai-compat` (the current `embed.itkdev.dk` path),
-   `fastembed` (in-process), or `tei`. `EMBEDDING_PREFIX_DOC` is prepended to each chunk.
-4. **Embed (sparse)** - optional. When `ENABLE_SPARSE_EMBEDDINGS=true`, a second named vector (BM42 / SPLADE family) is
-   added per chunk so retrieval can use Qdrant's native RRF hybrid query instead of client-side BM25.
+   `fastembed` (in-process), or `tei`. `EMBEDDING_PREFIX_DOC` is prepended to each chunk, and `EMBEDDING_DIM` (1024 for
+   e5-large) sizes the dense vector Qdrant allocates.
+4. **Embed (sparse)** - both deployed stacks run `ENABLE_SPARSE_EMBEDDINGS=true`, so a second named vector
+   (`text-sparse`, BM42 via `Qdrant/bm42-all-minilm-l6-v2-attentions`) is added per chunk, letting retrieval use
+   Qdrant's native RRF hybrid query instead of client-side BM25. Dense-only is the code default; when disabled the
+   writer sees dense-only chunks.
 5. **Write** - `DocumentWriter` backed by `QdrantDocumentStore` writes one point per chunk carrying the dense vector
-   (and the sparse vector when enabled) as named vectors.
+   (`text-dense`, and `text-sparse` when enabled) as named vectors.
 
 **Idempotency.** With `overwrite=true` (the default), all existing points whose `meta.file_id` matches the request are
-deleted before the new chunks are written; the same delete runs as teardown if any stage throws. So a `status: true`
-response means the file is *fully* indexed, any other outcome means its chunks are absent (no partial writes leak), and
-retrying the same `file_id` never duplicates vectors. Open WebUI's reindex action relies on this.
+deleted before the new chunks are written; the same delete runs as teardown if any stage throws, and the whole
+delete-then-write is guarded by the per-`file_id` lock so two concurrent requests can't interleave. So a
+`status: true` response means the file is *fully* indexed, any other outcome means its chunks are absent (no partial
+writes leak), and retrying the same `file_id` never duplicates vectors. Open WebUI's reindex action relies on this. The
+success body is `{status: true, collection_name, chunks_count}`; a failure returns `{status: false, error, code}` where
+`code` is one of `EXTRACTION_FAILED`, `EMBEDDING_FAILED`, `SPARSE_EMBEDDING_FAILED`, `QDRANT_WRITE_FAILED`,
+`S3_FETCH_FAILED`, `INVALID_REQUEST`, or `PIPELINE_FAILED`.
 
-There is also a developer-facing `POST /api/v1/extract` probe that runs only the converter and returns the raw extracted
-documents - useful for comparing extraction engines without a full ingest.
+### Vision extraction and content-based routing
+
+Three engines cover documents whose meaning lives in their *layout* rather than their text — flowcharts, diagrams, and
+scanned forms that a plain text extractor would flatten or drop:
+
+- **`vision-llm`** renders the document to page images and reconstructs it with a multimodal LLM. Office formats are
+  converted to PDF by the **Gotenberg** sidecar; the PDF is rasterized locally (pypdfium2) at `VISION_LLM_DPI` (150),
+  capped at `VISION_LLM_MAX_PAGES` (20); the pages go to `VISION_LLM_API_BASE_URL` (model `VISION_LLM_MODEL`) in a
+  single call. A prompt *profile* shapes the output — `diagram` (lanes/phases/steps plus a Mermaid flowchart),
+  `general` (faithful full-page Markdown), or `ocr` (plain-text transcription), with `diagram-topology` and `figure`
+  used internally by the hybrid engine. `VISION_LLM_LANGUAGE_HINT` (Danish) keeps the source language verbatim, and
+  output exceeding `VISION_LLM_MAX_TOKENS` fails the extraction rather than truncating silently.
+- **`hybrid-diagram`** (docx only) pairs the *authoritative* native text read straight from the package XML (verbatim
+  labels, nothing OCR-guessed) with a vision-inferred Mermaid graph. It picks `diagram-topology` for a *vector*
+  flowchart (labels are Word shapes) or `figure` for a *raster* PNG diagram (labels are pixels); a non-docx input falls
+  through to plain `vision-llm`. It wraps `vision-llm`, so it needs the same `VISION_LLM_*` + Gotenberg config. This is
+  the default diagram engine for `auto`.
+- **`auto`** routes each document by inspecting it (`detectors.py`). A `.docx` is sent to
+  `EXTRACTION_ROUTER_DIAGRAM_ENGINE` (default `hybrid-diagram`) when either signal fires; everything else goes to
+  `EXTRACTION_ROUTER_DEFAULT` (`kreuzberg` in deployments):
+  - **Vector flowchart** - drawing/text-box shapes ≥ `EXTRACTION_ROUTER_MIN_TEXTBOXES` (20) **and** drawing-to-body
+    word ratio ≥ `EXTRACTION_ROUTER_DRAWING_RATIO` (2.0).
+  - **Raster figure** - body images ≥ `EXTRACTION_ROUTER_MIN_BODY_IMAGES` (1) with the largest `<wp:extent>` display
+    area ≥ `EXTRACTION_ROUTER_MIN_IMAGE_EMU` (`1_500_000_000_000` EMU² ≈ 1.79 in²). The area floor — not a count —
+    rejects decoration; header/footer logos are excluded for free because only `word/document.xml` is read. The opt-in
+    `EXTRACTION_ROUTER_MIN_IMAGE_WORD_RATIO` (0 = off) adds an image-area-to-body-words guard for corpora with large
+    decorative hero photos.
+
+```mermaid
+flowchart TD
+  A[document] --> B{".docx?"}
+  B -- no --> D[EXTRACTION_ROUTER_DEFAULT<br/>kreuzberg]
+  B -- yes --> C{"vector-flowchart<br/>OR raster-figure<br/>signal?"}
+  C -- no --> D
+  C -- yes --> E[EXTRACTION_ROUTER_DIAGRAM_ENGINE<br/>hybrid-diagram]
+  E --> F{"vector vs raster"}
+  F -- vector --> G[diagram-topology profile]
+  F -- raster --> H[figure profile]
+```
+
+**Seeing what was chosen.** The `/api/v1/extract` response echoes the `engine` and `profile` used, every chunk written
+to Qdrant carries `meta.extractor` / `meta.vision_profile`, and `DEBUG=true` logs the per-document routing decision
+(detector signals → engine/profile) to the container logs.
+
+There is also a developer-facing `POST /api/v1/extract` probe that runs only the converter and returns the raw
+extracted documents - useful for comparing extraction engines without a full ingest. It takes an optional `engine`
+override (any concrete engine, but not `auto`) and an optional `profile` (accepted only by the vision engines), and
+responds with `{status, engine, profile, documents}`.
 
 ## 5. Retrieval path
 
@@ -259,15 +330,34 @@ separate (`RETRIEVAL_AGENT_API_KEY` → `AGENT_API_KEY`).
 
 ### ingestion-service (selected)
 
+Defaults below are the values the deployed AarhusAI stacks set; where they differ from the service's own
+code/`.env.example` default, the Notes column says so.
+
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `API_KEY` | *(required)* | Must equal Open WebUI's `EXTERNAL_INGESTION_API_KEY` |
 | `QDRANT_INDEX` | `ingestion_files` | Physical collection; must match retrieval-agent |
 | `EMBEDDING_MODEL` | `intfloat/multilingual-e5-large` | Must match retrieval-agent |
+| `EMBEDDING_DIM` | `1024` | Dense vector size; must match the model and retrieval-agent |
 | `EMBEDDING_PREFIX_DOC` | `"passage: "` | Doc-side prefix (keep the trailing space) |
-| `EXTRACTION_ENGINE` | `tika` | `tika` / `pypdf` / `kreuzberg` day-one; `docling` / `unstructured` optional |
-| `CHUNK_SPLIT_BY` | `token` | `token` / `markdown` / `word` / `sentence` / `passage` |
-| `ENABLE_SPARSE_EMBEDDINGS` | `false` | Adds the sparse vector that enables native hybrid retrieval |
+| `EXTRACTION_ENGINE` | `auto` (dev) / `kreuzberg` (server) | Full set `tika`/`pypdf`/`kreuzberg`/`docling`/`unstructured`/`vision-llm`/`hybrid-diagram`/`auto`; code default `tika` |
+| `EXTRACTION_ROUTER_DEFAULT` | `kreuzberg` | Non-diagram engine, consulted only when `EXTRACTION_ENGINE=auto` |
+| `EXTRACTION_ROUTER_DIAGRAM_ENGINE` | `hybrid-diagram` | Diagram engine, consulted only when `EXTRACTION_ENGINE=auto` |
+| `VISION_LLM_API_BASE_URL` | *(empty)* | Multimodal endpoint; empty disables the vision engines |
+| `VISION_LLM_MODEL` | *(endpoint-specific)* | Model served by the vision endpoint (`gemma4-nvfp4` code default) |
+| `GOTENBERG_URL` | `http://gotenberg:3000` | office→PDF sidecar for the vision engines |
+| `CHUNK_SPLIT_BY` | `markdown` | `token`/`markdown`/`word`/`sentence`/`passage`; code default `token` |
+| `CHUNK_SIZE` | `400` | Chunk length (HF tokens in token/markdown modes) |
+| `CHUNK_OVERLAP` | `80` | Overlap between chunks |
+| `TOKENIZER_REVISION` | *(pinned)* | Deploys pin the e5-large tokenizer SHA; empty = Hub HEAD |
+| `ENABLE_SPARSE_EMBEDDINGS` | `true` | Adds the sparse vector enabling native hybrid retrieval; code default `false` |
+| `SPARSE_EMBEDDING_MODEL` | `Qdrant/bm42-all-minilm-l6-v2-attentions` | BM42; must match retrieval-agent when hybrid is on |
+| `S3_ALLOWED_BUCKETS` | `openwebui` | Allow-list of buckets the service may fetch from (empty = unenforced) |
+
+The vision engines (`vision-llm` / `hybrid-diagram`) and the Gotenberg sidecar run on the dev stack
+(`EXTRACTION_ENGINE=auto`); the server stack uses plain `kreuzberg` and ships neither. Both stacks enable sparse
+embeddings and `markdown` chunking, so the code defaults (`tika`, dense-only, `token`) describe an unconfigured service
+rather than either deployment.
 
 ### retrieval-agent (selected)
 
@@ -289,11 +379,15 @@ Both services expose the same probe pair:
 
 - `GET /health` - liveness; 200 whenever the process is up.
 - `GET /health/ready` - readiness; 503 until dependencies are reachable. The ingestion-service additionally waits for
-  its Haystack pipeline to warm up (the sparse embedder pulls its model from HuggingFace on first boot, ~80 MB); the
-  retrieval-agent verifies Qdrant connectivity. This keeps Docker/Kubernetes from routing traffic during cold start.
+  its Haystack pipeline to warm up (with sparse enabled — the deployed norm — the BM42 embedder pulls its ~80 MB model
+  from HuggingFace, cached in the `ingestion_model_cache` volume so it survives restarts); the retrieval-agent verifies
+  Qdrant connectivity. This keeps Docker/Kubernetes from routing traffic during cold start. Readiness gates only the
+  pipeline warm-up and Qdrant — Gotenberg and the Vision LLM endpoint are *not* probed, so a vision dependency being
+  down surfaces per-request as an `EXTRACTION_FAILED` rather than blocking startup.
 
 ## 8. Reference
 
 - ingestion-service - <https://github.com/AarhusAI/ingestion-service>
 - retrieval-agent - <https://github.com/AarhusAI/retrieval-agent>
+- [Gotenberg](https://gotenberg.dev/) - office→PDF render sidecar used by the vision extraction engines
 - [Patches](./patches.md) - the Open WebUI patches applied in this stack
