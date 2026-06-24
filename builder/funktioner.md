@@ -1,6 +1,6 @@
 ---
 title: Vejledning: Funktioner i OpenWebUI — hvad gør de?
-authors: Line Stiil
+parent: Builder
 ---
 
 ## Vejledning: Funktioner i OpenWebUI — hvad gør de?
