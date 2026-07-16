@@ -1037,6 +1037,15 @@ inside the fallback return empty results, not 500s.
 From inside a container on the `app` network: `AGENT_API_BASE_URL=http://litellm:4000/v1`. From outside (e.g. `task` on
 the host, or a non-stack environment): `https://litellm.itkdev.dk/v1`.
 
+### 8.7 Exposing the agent over MCP
+
+Once the agent works over HTTP, you can additionally expose it as a **Model Context Protocol tool** so MCP-native
+clients (Open WebUI, Claude Desktop) can call it directly — the same capability, a second transport. The move is to
+factor the request handling into one service function and have *both* the `POST /search` route and the MCP tool call
+it, so their behaviour can't drift. The MCP-specific wiring — mounting FastMCP alongside these routes, the
+session-manager lifespan, the pure-ASGI bearer guard, and host validation — lives in the
+[Build a tool guide](./tool.md). Reuse the same constant-time `token_matches` from §7.8 across both transports.
+
 ## 9. Production - docker compose sever
 
 In production, the agent is **not built from source**.
