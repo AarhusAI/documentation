@@ -35,12 +35,21 @@ Patches
 - name: 'OIDC aak roles and groups'
   - url: [https://patch-diff.githubusercontent.com/raw/AarhusAI/open-webui/pull/33.diff]
   - branch: 'feature/oidc-group-claims'
-- name: 'Group sharing permissions'
-  - url: [https://patch-diff.githubusercontent.com/raw/AarhusAI/open-webui/pull/47.diff]
-  - branch: 'feature/group-sharing-permissions'
-  
+- name: 'Template for rag queries'
+  - url: [https://patch-diff.githubusercontent.com/raw/AarhusAI/open-webui/pull/49.diff]
+  - branch: 'feature/rag-query-template'
+
+Patches OS2:
+
+- name: 'Use tokenizer from the embedding model'
+  - url: [https://patch-diff.githubusercontent.com/raw/AarhusAI/open-webui/pull/53.diff]
+  - branch: 'feature/embed-tokenizer'
+
 Patches AAK:
 
+- name: 'External RAG/Ingestion service'
+  - url: [https://patch-diff.githubusercontent.com/raw/AarhusAI/open-webui/pull/52.diff]
+  - branch: 'feature/external-ingest-rag'
 - name: 'Allow only admin users to generate API-KEY for the backend'
   - url: [https://patch-diff.githubusercontent.com/raw/AarhusAI/open-webui/pull/41.diff]
   - branch: 'feature/admin-api-keys'
@@ -50,3 +59,6 @@ Patches AAK:
 - name: 'Expose file metadata URL in citation modal'
   - url: [https://patch-diff.githubusercontent.com/raw/AarhusAI/open-webui/pull/44.diff]
   - branch: 'feature/citation-modal-url'
+- name: 'Route MCP tool results through the existing citation pipeline (agentic search)'
+  - url: [https://patch-diff.githubusercontent.com/raw/AarhusAI/open-webui/pull/50.diff]
+  - branch: 'feature/agentic-search'
