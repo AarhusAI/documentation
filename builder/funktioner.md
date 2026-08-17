@@ -23,7 +23,7 @@ og hvornår det er hensigtsmæssigt at aktivere den.
 |Funktion|Forbrug|❌ Ikke relevant|Kun nyttigt ved betaling per token til ekstern API|
 |Funktion|Citater|✅ Anbefales|Særligt ved brug af vidensbaser|
 |Funktion|Statusopdateringer|✅ Anbefales|Viser hvad modellen arbejder på|
-|Funktion|Builtin Tools|⚠️ Kun erfarne|Kræver kendskab til hvad der injiceres|
+|Funktion|Builtin Tools| ✅ Anbefales|Hvis assistentens skal søge i viden skal dette være slået til|
 
 \---
 
