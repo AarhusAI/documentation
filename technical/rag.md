@@ -34,7 +34,7 @@ at query time.
 Why the change:
 
 - **Control over extraction and chunking.** The ingestion-service runs a [Haystack v2](https://haystack.deepset.ai/)
-  pipeline with pluggable extraction engines (`tika`, `kreuzberg`, `pypdf`, `docling`, `unstructured`) and chunking
+  pipeline with pluggable extraction engines (`kreuzberg`, `pypdf`, `docling`, `unstructured`) and chunking
   strategies (token, markdown, sentence, …) selected by configuration. A content-based `auto` mode additionally routes
   layout-bound documents (flowcharts, diagrams, scanned forms) to a multimodal **vision** path (`vision-llm` /
   `hybrid-diagram`) while everything else takes a plain text extractor.
@@ -71,7 +71,7 @@ flowchart TB
   end
 
   S3[("S3 / MinIO<br/>raw files")]
-  SIDE["Tika / Kreuzberg<br/>text extraction sidecars"]
+  SIDE["Kreuzberg<br/>text extraction sidecar"]
   GOT["Gotenberg<br/>office→PDF render sidecar"]
   VLM["Vision LLM endpoint<br/>(multimodal, VISION_LLM_*)"]
   EMB["Embedding endpoint<br/>(embed.itkdev.dk / TEI / fastembed)"]
@@ -122,8 +122,9 @@ The settings that must agree across ingestion-service and retrieval-agent:
 **Multitenancy.** Every chunk is written with a `meta.collection_name` payload (e.g. `file-abc`, or a knowledge-base
 name) and Qdrant is configured for per-tenant subgraphs keyed on that field (`hnsw_config={"m": 0, "payload_m": 16}`).
 The ingestion-service bootstraps the supporting keyword payload indexes at startup: `meta.collection_name` (the tenant
-key, `is_tenant=True`), `meta.collection_type`, and `meta.languages` (ISO 639-1 codes surfaced by Kreuzberg, enabling
-language filtering). At query time the retrieval-agent passes `collection_names` and filters on
+key, `is_tenant=True`), `meta.collection_type`, `meta.languages` (ISO 639-1 codes surfaced by Kreuzberg, enabling
+language filtering), plus `meta.file_id` and `meta.ingest_version` (which back the versioned-overwrite sweep described
+in [Ingestion path](#4-ingestion-path)). At query time the retrieval-agent passes `collection_names` and filters on
 `meta.collection_name ∈ collection_names`, so one Open WebUI knowledge base never bleeds into another even though they
 share one physical collection.
 
@@ -156,11 +157,11 @@ flowchart LR
   class SE optional;
 ```
 
-1. **Convert** - turn the raw file into Haystack `Document`s. The engine is chosen by `EXTRACTION_ENGINE`: `tika` and
-   `kreuzberg` are HTTP sidecars in the parent stack, `pypdf` is in-process (PDF-only), `docling`/`unstructured` need
-   optional dependencies, and `vision-llm`/`hybrid-diagram` are the multimodal vision engines. `auto` is not an engine
-   but a routing *mode* that picks one per document. Kreuzberg additionally surfaces document metadata (title, authors,
-   languages) and renders tables as Markdown. See [Vision extraction and content-based
+1. **Convert** - turn the raw file into Haystack `Document`s. The engine is chosen by `EXTRACTION_ENGINE`: `kreuzberg`
+   is an HTTP sidecar in the parent stack, `pypdf` is in-process (PDF-only), `docling`/`unstructured` need optional
+   dependencies, and `vision-llm`/`hybrid-diagram` are the multimodal vision engines. `auto` is not an engine but a
+   routing *mode* that picks one per document. Kreuzberg additionally surfaces document metadata (title, subject,
+   authors, created date, languages) and renders tables as Markdown. See [Vision extraction and content-based
    routing](#vision-extraction-and-content-based-routing) below.
 2. **Chunk** - slice documents by `CHUNK_SPLIT_BY` (deployed default `markdown`; code default `token`). `token` mode
    measures chunk size in the embedding model's actual HuggingFace tokens (important for e5-large's 512-token cap once
@@ -179,14 +180,18 @@ flowchart LR
 5. **Write** - `DocumentWriter` backed by `QdrantDocumentStore` writes one point per chunk carrying the dense vector
    (`text-dense`, and `text-sparse` when enabled) as named vectors.
 
-**Idempotency.** With `overwrite=true` (the default), all existing points whose `meta.file_id` matches the request are
-deleted before the new chunks are written; the same delete runs as teardown if any stage throws, and the whole
-delete-then-write is guarded by the per-`file_id` lock so two concurrent requests can't interleave. So a
-`status: true` response means the file is *fully* indexed, any other outcome means its chunks are absent (no partial
-writes leak), and retrying the same `file_id` never duplicates vectors. Open WebUI's reindex action relies on this. The
-success body is `{status: true, collection_name, chunks_count}`; a failure returns `{status: false, error, code}` where
+**Idempotency.** With `overwrite=true` (the default), each ingest is a *blue/green* version swap rather than a
+delete-then-write. Every run stamps its chunks with a fresh `meta.ingest_version` and writes them **alongside** any
+existing points for the same `file_id`; only *after* the write succeeds with at least one chunk are the **stale**
+versions (same `file_id`, a different `ingest_version`) swept. If any stage throws, the teardown deletes only the
+failed run's version, leaving the previously indexed version intact. The whole sequence is guarded by the
+per-`file_id` lock so two concurrent requests can't interleave. So a `status: true` response means the file is
+*fully* indexed against the new version, a failure leaves the prior version in place (no partial writes leak, and
+retrieval never sees a half-written index), and retrying the same `file_id` never duplicates vectors. Open WebUI's
+reindex action relies on this. The success body is `{status: true, collection_name, chunks_count}` (plus an optional
+`extraction` object echoing the engine/profile actually used); a failure returns `{status: false, error, code}` where
 `code` is one of `EXTRACTION_FAILED`, `EMBEDDING_FAILED`, `SPARSE_EMBEDDING_FAILED`, `QDRANT_WRITE_FAILED`,
-`S3_FETCH_FAILED`, `INVALID_REQUEST`, or `PIPELINE_FAILED`.
+`DELETE_FAILED`, `S3_FETCH_FAILED`, `INVALID_REQUEST`, or `PIPELINE_FAILED`.
 
 ### Vision extraction and content-based routing
 
@@ -228,14 +233,27 @@ flowchart TD
   F -- raster --> H[figure profile]
 ```
 
-**Seeing what was chosen.** The `/api/v1/extract` response echoes the `engine` and `profile` used, every chunk written
-to Qdrant carries `meta.extractor` / `meta.vision_profile`, and `DEBUG=true` logs the per-document routing decision
-(detector signals → engine/profile) to the container logs.
+**Seeing what was chosen.** The `/api/v1/extract` response echoes the `engine` and `profile` used, and every chunk
+written by a vision/hybrid or `auto`-routed path carries `meta.extractor` / `meta.vision_profile`. The per-document
+routing decision (which engine/profile was chosen) is logged at **INFO**; the detailed detector signals behind it
+(textbox counts, drawing ratios, image areas) are logged at **DEBUG**, so set `LOG_LEVEL_APP=DEBUG` to see them.
+(`DEBUG=true` is a separate operator error-triage switch, not the log-verbosity dial.)
 
 There is also a developer-facing `POST /api/v1/extract` probe that runs only the converter and returns the raw
 extracted documents - useful for comparing extraction engines without a full ingest. It takes an optional `engine`
 override (any concrete engine, but not `auto`) and an optional `profile` (accepted only by the vision engines), and
 responds with `{status, engine, profile, documents}`.
+
+### Deleting and inspecting documents
+
+Two more endpoints round out the document lifecycle:
+
+- **`DELETE /api/v1/documents/{file_id}`** removes every point for a `file_id` (all versions) from Qdrant, returning a
+  `DeleteResponse`. Failures surface as the `DELETE_FAILED` code. Open WebUI calls this when a file is removed from a
+  knowledge base.
+- **`GET /api/v1/documents/{file_id}/chunks`** is a read-only inspection endpoint that returns the stored chunks and
+  their payload for a file - useful for debugging extraction/chunking. It is gated by `ENABLE_INSPECTION_API` (default
+  `false`) so it is off unless explicitly enabled.
 
 ## 5. Retrieval path
 
@@ -302,6 +320,9 @@ Key behaviours:
 
 - The agent is told to generate 1–2 queries, call `retrieve` once, **accept** if *any* returned document is on-topic,
   and only **retry** with rewritten queries when results are completely off-topic.
+- A **raw-query seed** (`AGENT_INCLUDE_RAW_QUERY`, default on) runs one deterministic retrieval of the user's original
+  query *before* the agent loop and merges those hits into the results, so the answer never depends solely on the LLM's
+  rewrites.
 - A **side-channel** (`AgentDeps.full_results`) accumulates the full retrieval results across iterations, while the tool
   only returns truncated previews to the LLM (`AGENT_PREVIEW_K` items, `AGENT_TOOL_PREVIEW_CHARS` each) so the context
   window doesn't balloon on retries. The final response uses the full text, not the previews.
@@ -340,11 +361,11 @@ code/`.env.example` default, the Notes column says so.
 | `EMBEDDING_MODEL` | `intfloat/multilingual-e5-large` | Must match retrieval-agent |
 | `EMBEDDING_DIM` | `1024` | Dense vector size; must match the model and retrieval-agent |
 | `EMBEDDING_PREFIX_DOC` | `"passage: "` | Doc-side prefix (keep the trailing space) |
-| `EXTRACTION_ENGINE` | `auto` (dev) / `kreuzberg` (server) | Full set `tika`/`pypdf`/`kreuzberg`/`docling`/`unstructured`/`vision-llm`/`hybrid-diagram`/`auto`; code default `tika` |
+| `EXTRACTION_ENGINE` | `auto` (both stacks) | Full set `pypdf`/`kreuzberg`/`docling`/`unstructured`/`vision-llm`/`hybrid-diagram`/`auto`; code default `kreuzberg` |
 | `EXTRACTION_ROUTER_DEFAULT` | `kreuzberg` | Non-diagram engine, consulted only when `EXTRACTION_ENGINE=auto` |
 | `EXTRACTION_ROUTER_DIAGRAM_ENGINE` | `hybrid-diagram` | Diagram engine, consulted only when `EXTRACTION_ENGINE=auto` |
 | `VISION_LLM_API_BASE_URL` | *(empty)* | Multimodal endpoint; empty disables the vision engines |
-| `VISION_LLM_MODEL` | *(endpoint-specific)* | Model served by the vision endpoint (`gemma4-nvfp4` code default) |
+| `VISION_LLM_MODEL` | `AarhusAI-default-v2` | Model served by the vision endpoint (`gemma4-nvfp4` code default) |
 | `GOTENBERG_URL` | `http://gotenberg:3000` | office→PDF sidecar for the vision engines |
 | `CHUNK_SPLIT_BY` | `markdown` | `token`/`markdown`/`word`/`sentence`/`passage`; code default `token` |
 | `CHUNK_SIZE` | `400` | Chunk length (HF tokens in token/markdown modes) |
@@ -353,11 +374,13 @@ code/`.env.example` default, the Notes column says so.
 | `ENABLE_SPARSE_EMBEDDINGS` | `true` | Adds the sparse vector enabling native hybrid retrieval; code default `false` |
 | `SPARSE_EMBEDDING_MODEL` | `Qdrant/bm42-all-minilm-l6-v2-attentions` | BM42; must match retrieval-agent when hybrid is on |
 | `S3_ALLOWED_BUCKETS` | `openwebui` | Allow-list of buckets the service may fetch from (empty = unenforced) |
+| `ENABLE_INSPECTION_API` | `false` | Enables the read-only `GET /api/v1/documents/{file_id}/chunks` inspection endpoint |
+| `METRICS_ENABLED` | `true` | Exposes the bearer-authed Prometheus `GET /metrics` endpoint |
 
-The vision engines (`vision-llm` / `hybrid-diagram`) and the Gotenberg sidecar run on the dev stack
-(`EXTRACTION_ENGINE=auto`); the server stack uses plain `kreuzberg` and ships neither. Both stacks enable sparse
-embeddings and `markdown` chunking, so the code defaults (`tika`, dense-only, `token`) describe an unconfigured service
-rather than either deployment.
+Both the dev and server stacks run `EXTRACTION_ENGINE=auto`, ship the Gotenberg sidecar, and point the vision engines
+(`vision-llm` / `hybrid-diagram`) at `VISION_LLM_API_BASE_URL` (the LiteLLM proxy at `litellm.itkdev.dk` in
+production). Both also enable sparse embeddings and `markdown` chunking, so the code defaults (`kreuzberg`, dense-only,
+`token`) describe an unconfigured service rather than either deployment.
 
 ### retrieval-agent (selected)
 
@@ -384,6 +407,9 @@ Both services expose the same probe pair:
   Qdrant connectivity. This keeps Docker/Kubernetes from routing traffic during cold start. Readiness gates only the
   pipeline warm-up and Qdrant — Gotenberg and the Vision LLM endpoint are *not* probed, so a vision dependency being
   down surfaces per-request as an `EXTRACTION_FAILED` rather than blocking startup.
+
+Both services also expose `GET /metrics` - a Prometheus scrape endpoint, bearer-authenticated with the same `API_KEY`
+and gated by `METRICS_ENABLED` (default on; returns 404 when disabled).
 
 ## 8. Reference
 
