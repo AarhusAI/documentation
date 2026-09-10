@@ -77,6 +77,12 @@ flowchart LR
 The wrapper exists to centralise three things — upstream auth (your tool holds the API key, not the client), error
 normalisation (every caller sees the same error shape), and observability (you log and metric in one place).
 
+A very common variant is exposing an **existing agent** as an MCP tool: you already built a service from
+[the agent guide](./agentic_tool.md) with a `POST /search`-style route, and you want the same capability available to
+MCP clients. The pattern is identical, with one rule — factor the work into a single service function and have *both*
+the REST route and the MCP tool call it, so their behaviour can't drift. Everything below applies unchanged; §6 shows
+the REST and MCP transports living in one FastAPI app.
+
 > **"Tool" is overloaded.** This guide is about *MCP* tools — functions exposed to external clients over the MCP
 > protocol. [The agent guide](./agentic_tool.md) §8 covers *PydanticAI* tools — `@agent.tool` functions called from
 > inside an agent's own LLM loop. They are unrelated despite the shared word.
@@ -86,7 +92,7 @@ normalisation (every caller sees the same error shape), and observability (you l
 The smallest working MCP server — one tool that calls the API and returns a result. Drop it into the §7 skeleton from
 [the agent guide](./agentic_tool.md), with one extra dependency.
 
-Add `mcp[cli]>=1.0` to `pyproject.toml`:
+Add `mcp[cli]>=1.20` to `pyproject.toml`:
 
 ```toml
 [project]
@@ -96,9 +102,13 @@ dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "httpx>=0.27.0",
-    "mcp[cli]>=1.0",
+    "mcp[cli]>=1.20",
 ]
 ```
+
+Import `FastMCP` from `mcp.server.fastmcp` — the server bundled in the official MCP SDK, **not** the separate PyPI
+package named `fastmcp` (a different project, and a common import mix-up). Pin `>=1.20`: earlier releases predate the
+default `/mcp` route path and the transport-security behaviour §5.4 relies on.
 
 `app/mcp_server.py`:
 
@@ -161,10 +171,12 @@ async def health():
 app.mount("/", mcp.streamable_http_app())
 ```
 
-That's enough to run. `task up`, then verify with an `initialize` call:
+Mounting the sub-app at `/` serves the live JSON-RPC endpoint at **`POST /mcp`** — FastMCP's default
+`streamable_http_path` is `/mcp`, so the path comes from the sub-app, not the mount point. That's enough to run.
+`task up`, then verify with an `initialize` call:
 
 ```bash
-curl -X POST http://localhost:8000/ \
+curl -X POST http://localhost:8000/mcp \
      -H "Content-Type: application/json" \
      -H "Accept: application/json, text/event-stream" \
      -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
@@ -180,7 +192,7 @@ production-ready.
 ### 5.1 Module-level httpx client
 
 Creating an `httpx.AsyncClient` per call wastes connections. Lift it to module scope with lazy init, mirroring the
-pattern from [the agent guide §7.9](./new-agent.md#79-routes-and-services). Put it in `app/services/weather.py`:
+pattern from [the agent guide §7.9](./agentic_tool.md#79-routes-and-services). Put it in `app/services/weather.py`:
 
 ```python
 import httpx
@@ -273,13 +285,20 @@ Two rules:
   client *when* to call it. Write it like help text for a teammate.
 
 The MCP SDK accepts several return types (string, dict, list, pydantic model). Returning a **JSON string** is the most
-portable shape across SDK versions and matches what search-agent does.
+portable shape across SDK versions and matches what search-agent does. When you're exposing an existing agent, the
+tidiest form is to reuse the service's Pydantic response model and return `response.model_dump_json()` — one line, and
+the MCP payload matches the REST response byte-for-byte.
+
+**Clamp the tool's arguments yourself.** The tool signature is the raw contract MCP clients see; it does *not* run your
+REST request model's validators. If your `POST /search` body caps `limit` at 100 and truncates the prompt at 2000
+chars, re-apply those bounds at the top of the tool function (`limit = max(1, min(limit, 100))`), or an LLM-driven
+client can send values your service never expected.
 
 ### 5.4 Inbound transport security
 
-MCP's Streamable HTTP transport doesn't use bearer tokens by default — it uses **host validation**: the server only
-accepts requests whose `Host` header is on an allowlist. This prevents DNS-rebinding attacks against MCP servers that
-sit on `localhost` or internal hostnames.
+MCP's Streamable HTTP transport doesn't use bearer tokens by default — it ships **host validation**: the server
+rejects requests whose `Host` header isn't on an allowlist, blocking DNS-rebinding attacks against servers that sit on
+`localhost` or internal hostnames.
 
 Configure it on the `FastMCP` instance:
 
@@ -298,22 +317,101 @@ mcp = FastMCP(
 )
 ```
 
-And in `app/config.py`:
+`TransportSecuritySettings.enable_dns_rebinding_protection` defaults to `True`, so passing a `TransportSecuritySettings`
+at all turns host validation **on**, with `allowed_hosts` as the allowlist. (Construct `FastMCP` with no
+`transport_security` and protection stays off — the allowlist alone is not the switch.) A request whose `Host` isn't
+listed gets a **421 Misdirected Request** — not a 401 or 403, so it's easy to misread; see §12. (For contrast, a bad
+`Origin` → 403 and a bad `Content-Type` → 400.)
+
+And in `app/config.py` — the `:*` suffix is a wildcard-port match, which you want because the forwarded `Host` port
+varies by proxy and client:
 
 ```python
 class Settings(BaseSettings):
     mcp_allowed_hosts: list[str] = [
-        "my-tool:8000",        # service-to-service inside the app network
-        "localhost:8000",      # local curl/dev
+        "my-tool:*",        # service-to-service inside the app network (any port)
+        "localhost:*",      # local curl/dev
     ]
 ```
 
 When Open WebUI calls your tool, it sends the upstream `Host` header it was configured to use; that host **must** be
 on the allowlist. Production deployments add their public hostname (e.g. `my-tool.itkdev.dk`) here too.
 
-If you also need bearer-token auth on the inbound side (to prevent any other container on the same network from
-calling your tool), wrap the MCP mount in a FastAPI middleware that checks an `Authorization` header before the
-request reaches the MCP app. The transport-security allowlist is a baseline; layered auth is fine.
+#### Layering bearer auth on the mount
+
+The host allowlist is a baseline, not caller authentication — any container on the `app` network can still reach you.
+To require `Authorization: Bearer <key>`, guard the mount with a **pure-ASGI middleware**. Do **not** reach for
+`@app.middleware("http")` / Starlette's `BaseHTTPMiddleware`: it clashes with the Streamable HTTP transport's ASGI
+message sequence (it emits a second `http.response.start`, raising `AssertionError`) and breaks the long-lived
+streaming and client-disconnect handling the transport relies on. A pure-ASGI class that inspects the scope and either
+short-circuits or forwards `scope`/`receive`/`send` untouched leaves the stream intact:
+
+```python
+# app/main.py
+from starlette.responses import PlainTextResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
+
+from app.auth import is_valid_bearer
+
+
+class MCPAuthMiddleware:
+    """Require `Authorization: Bearer <API_KEY>` for the MCP mount only.
+
+    Pure ASGI on purpose: BaseHTTPMiddleware buffers and breaks the transport's
+    SSE streams. Only `/mcp` is guarded; REST routes keep Depends(verify_api_key).
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self._app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope.get("path", "").startswith("/mcp"):
+            headers = dict(scope.get("headers") or [])
+            raw = headers.get(b"authorization")
+            authorization = raw.decode("latin-1") if raw is not None else None
+            if not is_valid_bearer(authorization):
+                response = PlainTextResponse(
+                    "missing or invalid bearer token",
+                    status_code=401,
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+                await response(scope, receive, send)
+                return
+        await self._app(scope, receive, send)
+
+
+app.add_middleware(MCPAuthMiddleware)
+```
+
+Guarding `scope["type"] == "http"` lets lifespan and websocket scopes pass straight through. The token check is
+shared with the REST route's dependency and is **constant-time** — compare encoded bytes with `hmac.compare_digest`,
+never `==` (a plain compare leaks timing, and `compare_digest` raises `TypeError` on a non-ASCII `str`, turning a
+garbage token into a 500 instead of a 401):
+
+```python
+# app/auth.py
+import hmac
+
+from app.config import settings
+
+
+def token_matches(token: str) -> bool:
+    return hmac.compare_digest(token.encode(), settings.api_key.encode())
+
+
+def is_valid_bearer(authorization: str | None) -> bool:
+    """Bearer check shared by verify_api_key and the MCP ASGI middleware.
+
+    A mounted sub-app can't use a FastAPI route dependency, so the middleware
+    inspects the header itself and reuses this comparison.
+    """
+    if authorization is None or not authorization.startswith("Bearer "):
+        return False
+    return token_matches(authorization.removeprefix("Bearer ").strip())
+```
+
+Have your REST `verify_api_key` dependency ([agent guide §7.8](./agentic_tool.md#78-appauthpy)) call the same
+`token_matches`, so both transports accept exactly one key through one comparison.
 
 ### 5.5 Outbound auth (upstream API)
 
@@ -324,7 +422,7 @@ Same pattern as a regular HTTP service. The upstream API key lives in `Settings`
 class Settings(BaseSettings):
     weather_api_key: str  # required — no default
     weather_api_base_url: str = "https://api.example.com"
-    mcp_allowed_hosts: list[str] = ["my-tool:8000", "localhost:8000"]
+    mcp_allowed_hosts: list[str] = ["my-tool:*", "localhost:*"]
 ```
 
 It's injected on the long-lived client (§5.1). Document everything in `.env.example`:
@@ -335,8 +433,12 @@ WEATHER_API_KEY=
 WEATHER_API_BASE_URL=https://api.example.com
 
 # Inbound — MCP transport security
-MCP_ALLOWED_HOSTS=["my-tool:8000","localhost:8000"]
+MCP_ALLOWED_HOSTS=["my-tool:*","localhost:*"]
 ```
+
+`MCP_ALLOWED_HOSTS` is a JSON array. In `docker-compose.yml`, give the interpolation default a **valid JSON** value —
+`MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS:-["my-tool:*","localhost:*"]}` — so an unset var doesn't hand
+pydantic-settings a non-JSON string and crash list parsing at startup.
 
 ### 5.6 Error handling
 
@@ -392,11 +494,35 @@ Two distinct timeouts, plus a third that's not yours to set:
 Rule of thumb: a single upstream call should be ≤ 10s. If the API is regularly slower, either cache (§8) or rethink
 whether this needs to be a synchronous MCP tool at all.
 
+### 5.8 Compacting tool output for chat clients
+
+An MCP tool result is not consumed once and discarded like a REST response — a chat client such as Open WebUI
+**replays every tool result verbatim into the model's context on every subsequent turn**. A verbose payload (full
+HTML bodies, long nested lists, upstream metadata) therefore accumulates turn after turn until it overflows the
+context window, at which point the follow-up reply silently fails to generate. This is invisible in a single-shot
+`curl` test and only shows up in a real conversation.
+
+So when a tool can return bulky records, **compact the payload on the MCP path only** — strip HTML to plain text,
+truncate long descriptions, cap repeated sub-lists — while the REST endpoint keeps returning the full records for
+programmatic callers. Do it in the shared service layer so the split stays in one place:
+
+```python
+# app/mcp_server.py
+@mcp.tool()
+async def get_weather(city: str, units: Literal["metric", "imperial"] = "metric") -> str:
+    payload = await fetch_weather(city, units)     # same service call as the REST route
+    return compact(payload).model_dump_json()      # trimmed for context replay; REST returns payload untrimmed
+```
+
+Size the caps to what the model actually needs to answer, not to what the upstream happens to return. If the tool
+returns something inherently small (a temperature, a status), skip this entirely.
+
 ## 6. FastAPI coexistence — health and MCP at the same port
 
 Your service is one FastAPI app: regular routes (health, debug) coexist with the MCP mount. The lifespan **must** wrap
-`yield` with `async with mcp.session_manager.run():` — without it the MCP endpoint accepts requests but can't handle
-them, and every call returns a 500.
+`yield` with `async with mcp.session_manager.run():` — Starlette does not run a mounted sub-app's own lifespan, so this
+is the only place the session manager gets started. Without it every `/mcp` call fails with `Task group is not
+initialized`.
 
 ```python
 # app/main.py
@@ -444,9 +570,11 @@ async def health_ready():
 app.mount("/", mcp.streamable_http_app())
 ```
 
-**Mount order matters.** `app.mount("/", ...)` claims the root path. Add any non-MCP routes (`/health`,
-`/health/ready`, `/debug/...`) **before** the mount. Routes registered before a mount on `/` continue to win for
-their specific paths.
+**Mount at `/`, served at `/mcp`, mounted last.** The sub-app is mounted on `/`, but FastMCP's default
+`streamable_http_path` puts the live endpoint at `POST /mcp` — so your explicit REST routes (`/health`,
+`/health/ready`, `/search`, `/debug/...`) coexist with it, *provided they're registered **before** the mount*: a mount
+on `/` otherwise swallows every path. The `MCPAuthMiddleware` from §5.4 guards only `/mcp`, while the REST routes keep
+their own `Depends(verify_api_key)`.
 
 ---
 
@@ -457,11 +585,13 @@ configuration-only, no code changes.
 
 What Open WebUI needs:
 
-- **The MCP endpoint URL.** Inside the `app` network it's `http://my-tool:8000/`. From a host browser or a remote
-  client, use the Traefik-routed public URL.
+- **The MCP endpoint URL.** Inside the `app` network it's `http://my-tool:8000/mcp` (note the `/mcp` path — §4). From
+  a host browser or a remote client, use the Traefik-routed public URL, also ending in `/mcp`.
 - **The host you registered with Open WebUI must be on the allowlist** (§5.4). If Open WebUI hits
-  `http://my-tool:8000/`, then `my-tool:8000` must be in `MCP_ALLOWED_HOSTS`. If it hits a Traefik hostname, add that
-  too.
+  `http://my-tool:8000/mcp`, then `my-tool` (any port, via `my-tool:*`) must be in `MCP_ALLOWED_HOSTS`. If it hits a
+  Traefik hostname, add that too — otherwise every call comes back **421**.
+- **Streamable HTTP requires `Accept: application/json, text/event-stream`.** Open WebUI sends this itself; keep it in
+  mind when you reproduce a call by hand with `curl`.
 
 In Open WebUI, register the tool under **Settings → Tools → MCP servers** (exact path moves between releases — check
 the running version). The fields you typically need:
@@ -470,7 +600,7 @@ the running version). The fields you typically need:
 |---------------|------------------------------------------------------|
 | Name          | `my-tool`                                            |
 | Transport     | Streamable HTTP                                      |
-| URL           | `http://my-tool:8000/`                               |
+| URL           | `http://my-tool:8000/mcp`                            |
 | Auth (if any) | Bearer token, only if you layered one on top of §5.4 |
 
 Open WebUI calls `initialize` and `tools/list` on registration. If the host is allowlisted and the lifespan is wrapped
@@ -534,16 +664,16 @@ Caveats:
 The FastAPI skeleton, Dockerfile, Taskfile, networks, and parent-stack integration are **identical** to
 [the agent guide](./agentic_tool.md) — same boilerplate, same conventions. Specifically:
 
-- **Skeleton + `pyproject.toml`** — [§7](./new-agent.md#7-step-by-step-setup). Drop `pydantic-ai-slim` from
-  `dependencies`; add `mcp[cli]>=1.0`.
-- **Dockerfile** — [§7.3](./new-agent.md#73-dockerfile). No model cache needed.
-- **docker-compose.yml** — [§7.4](./new-agent.md#74-docker-composeyml). Same networks, same Traefik labels.
-- **Taskfile.yml** — [§7.5](./new-agent.md#75-taskfileyml). Verbatim copy.
+- **Skeleton + `pyproject.toml`** — [§7](./agentic_tool.md#7-step-by-step-setup). Drop `pydantic-ai-slim` from
+  `dependencies`; add `mcp[cli]>=1.20`.
+- **Dockerfile** — [§7.3](./agentic_tool.md#73-dockerfile). No model cache needed.
+- **docker-compose.yml** — [§7.4](./agentic_tool.md#74-docker-compose). Same networks, same Traefik labels.
+- **Taskfile.yml** — [§7.5](./agentic_tool.md#75-taskfileyml). Verbatim copy.
 - **Lifespan + health** — see §6 above; the lifespan must wrap `yield` with `mcp.session_manager.run()`.
-- **Embedding in the parent stack** — [§9](./new-agent.md#9-integrating-with-the-parent-stack). Same dev/prod split,
+- **Embedding in the parent stack** — [§9](./agentic_tool.md#9-production---docker-compose-sever). Same dev/prod split,
   same `image:` reference pattern. **Add `MCP_ALLOWED_HOSTS` to the env block**, including every hostname Open WebUI
   will use to reach you.
-- **Multi-arch image build** — [§10](./new-agent.md#10-production-builds-multi-arch). Verbatim.
+- **Multi-arch image build** — [§10](./agentic_tool.md#10-production-builds-multi-arch). Verbatim.
 
 The only delta is what's in `app/mcp_server.py` and `app/services/` — the FastMCP setup, the tool registration, and
 the service-layer API wrapper.
@@ -654,11 +784,59 @@ async def test_get_weather_returns_json_string():
     }
 ```
 
-For full integration tests (Streamable HTTP transport, real JSON-RPC framing) drive the FastAPI app with
-`httpx.AsyncClient` against the mounted endpoint — same approach as the agent guide §7.10 ASGI fixture. Most
-projects find the unit tests above sufficient.
+Those assertions cover the tool's logic. Two more layers cover the mount, if you layered auth on it (§5.4):
 
-The `conftest.py` env-before-import rule from [the agent guide §7.10](./new-agent.md#710-testsconftestpy) still
+**The auth guard, as raw ASGI.** Drive `MCPAuthMiddleware` directly — no server, no lifespan — to prove it
+short-circuits a missing/invalid bearer and passes a valid one through:
+
+```python
+from app.main import MCPAuthMiddleware
+
+
+async def _run(path, authorization):
+    called = False
+
+    async def inner(scope, receive, send):
+        nonlocal called
+        called = True
+
+    async def receive():
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    sent = []
+
+    async def send(message):
+        sent.append(message)
+
+    headers = [(b"authorization", authorization.encode())] if authorization else []
+    await MCPAuthMiddleware(inner)({"type": "http", "path": path, "headers": headers}, receive, send)
+    return called, sent
+
+
+async def test_mcp_requires_bearer():
+    called, sent = await _run("/mcp", None)
+    assert not called
+    assert sent[0]["status"] == 401
+```
+
+**The endpoint, end to end.** Post to `/mcp` and assert the 401 fires before the transport. Here the fixture scope
+matters: a Starlette `TestClient(app)` runs the app lifespan, and `mcp.session_manager.run()` raises `RuntimeError` if
+entered more than once per instance — so a **function-scoped** client that re-enters the lifespan per test fails. Make
+the client **session-scoped**:
+
+```python
+# tests/conftest.py
+@pytest.fixture(scope="session")
+def client():
+    with TestClient(app) as test_client:   # runs lifespan → starts the MCP session manager
+        yield test_client
+```
+
+A 401-only check can also run over httpx `ASGITransport` (which skips the lifespan — the middleware answers before the
+mount is reached), but any test that exercises a *successful* `/mcp` call needs the session manager running, i.e.
+`TestClient` + session scope.
+
+The `conftest.py` env-before-import rule from [the agent guide §7.10](./agentic_tool.md#710-testsconftestpy) still
 applies — set `WEATHER_API_KEY` and `MCP_ALLOWED_HOSTS` before `from app.main import app`.
 
 ---
@@ -677,7 +855,9 @@ Before declaring the tool done:
   description).
 - [ ] **MCP `tools/call` succeeds.** Calling `get_weather` with a valid city returns the expected JSON payload.
 - [ ] **Transport security blocks wrong hosts.** A request with a `Host` header not on `MCP_ALLOWED_HOSTS` is
-  rejected.
+  rejected with **421**.
+- [ ] **Bearer guard rejects bad tokens (if layered, §5.4).** A `/mcp` request with a missing or wrong
+  `Authorization` header → 401 (from `MCPAuthMiddleware`), while a valid one passes through to the transport.
 - [ ] **Upstream 4xx → meaningful error.** Unknown city → JSON-RPC error with the `City not found` message.
 - [ ] **Upstream 5xx / timeout → meaningful error.** Point `WEATHER_API_BASE_URL` at `http://127.0.0.1:1` and confirm
   the MCP error mentions unavailability or timeout.
@@ -691,9 +871,9 @@ Before declaring the tool done:
 
 ## 12. Common pitfalls / FAQ
 
-**1. Tool calls return 500, never reach my function.**
-The lifespan is missing `async with mcp.session_manager.run():` around `yield`. The Streamable HTTP transport needs
-that session manager to dispatch JSON-RPC calls. See §6.
+**1. Tool calls fail with `Task group is not initialized` (or a 500), never reach my function.**
+The lifespan is missing `async with mcp.session_manager.run():` around `yield`. Starlette doesn't run a mounted
+sub-app's lifespan, so the session manager that dispatches JSON-RPC calls never starts. See §6.
 
 **2. Open WebUI says "MCP server unreachable" but `curl` works.**
 Host mismatch: Open WebUI sends a `Host` header your `MCP_ALLOWED_HOSTS` doesn't include. Add Open WebUI's hostname
@@ -713,7 +893,7 @@ to be safe.
 registered **before** the mount. If a route is registered after the mount, the mount wins.
 
 **6. "Why do I see two kinds of 'tool' in our docs?"**
-[The agent guide §8](./new-agent.md#8-pydanticai-patterns) covers PydanticAI `@agent.tool` — Python functions called
+[The agent guide §8](./agentic_tool.md#8-pydanticai-patterns) covers PydanticAI `@agent.tool` — Python functions called
 from inside an *agent's own LLM loop*. This guide covers MCP tools — functions exposed to *external clients* over the
 MCP protocol. Different concepts, same word. A service can do both (search-agent does), but for most cases you want
 one or the other.
@@ -723,17 +903,37 @@ one or the other.
 decorator the real HTTP call fires against `api.example.com` and you get a transport error. The autouse fixture
 resetting `_client` to `None` (§10) is essential.
 
+**8. Adding bearer auth broke the transport — `AssertionError`, or streamed calls hang.**
+You wrapped the mount in `@app.middleware("http")` / `BaseHTTPMiddleware`. That buffers the response and clashes with
+the transport's ASGI message sequence (a second `http.response.start` → `AssertionError`), and breaks long-lived
+streaming. Use a **pure-ASGI** middleware that forwards `scope`/`receive`/`send` untouched (§5.4).
+
+**9. Tests fail with "StreamableHTTPSessionManager .run() can only be called once per instance".**
+A function-scoped `TestClient(app)` fixture re-enters the app lifespan — and thus `session_manager.run()` — per test.
+Make the client fixture `scope="session"` (§10).
+
+**10. Every `/mcp` call returns 421, even from inside the network.**
+DNS-rebind protection rejected the `Host` header. It's on whenever a `TransportSecuritySettings` is passed (the
+`enable_dns_rebinding_protection` flag defaults to `True`), so the caller's host must be in `MCP_ALLOWED_HOSTS` —
+remember `:*` for a wildcard port, and add the Traefik/public hostname in production (§5.4).
+
+**11. `ImportError`, or `FastMCP` behaves unlike these docs.**
+You installed the wrong package. `FastMCP` here comes from `mcp.server.fastmcp` in the official `mcp` SDK
+(`mcp[cli]>=1.20`) — not the separate PyPI package `fastmcp` (a different project with a different API).
+
 ---
 
 ## 13. Reference index
 
-| Resource                                                                 | What it gives you                              |
-|--------------------------------------------------------------------------|------------------------------------------------|
-| [The agent guide §6](./new-agent.md#6-repository-layout)                 | Routes/services split; project layout          |
-| [The agent guide §7](./new-agent.md#7-step-by-step-setup)                | Reusable FastAPI/Docker/Taskfile skeleton      |
-| [The agent guide §7.10](./new-agent.md#710-testsconftestpy)              | Env-before-import test setup                   |
-| [The agent guide §9](./new-agent.md#9-integrating-with-the-parent-stack) | Networking, parent-stack embedding             |
-| [AarhusAI/search-agent](https://github.com/AarhusAI/search-agent)        | Canonical real-world MCP server in this org    |
-| [Python MCP SDK](https://github.com/modelcontextprotocol/python-sdk)     | API reference for `FastMCP`, transports, tools |
-| [MCP spec](https://modelcontextprotocol.io/)                             | Transport-level details and JSON-RPC framing   |
-| [respx](https://lundberg.github.io/respx/)                               | httpx mocking library used in tests            |
+| Resource                                                                                    | What it gives you                                                            |
+|---------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [The agent guide §6](./agentic_tool.md#6-repository-layout)                                 | Routes/services split; project layout                                        |
+| [The agent guide §7](./agentic_tool.md#7-step-by-step-setup)                                | Reusable FastAPI/Docker/Taskfile skeleton                                    |
+| [The agent guide §7.10](./agentic_tool.md#710-testsconftestpy)                              | Env-before-import test setup                                                 |
+| [The agent guide §9](./agentic_tool.md#9-production---docker-compose-sever)                 | Networking, parent-stack embedding                                           |
+| [AarhusAI/search-agent](https://github.com/AarhusAI/search-agent)                           | Canonical real-world MCP server in this org                                  |
+| [AarhusAI/retsinformation-api-agent](https://github.com/AarhusAI/retsinformation-api-agent) | MCP added to an existing agent (constant-time bearer guard, shared pipeline) |
+| [AarhusAI/eventdatabasen-agent](https://github.com/AarhusAI/eventdatabasen-agent)           | MCP added to an existing agent (shared `run_search`, output compaction)      |
+| [Python MCP SDK](https://github.com/modelcontextprotocol/python-sdk)                        | API reference for `FastMCP`, transports, tools                               |
+| [MCP spec](https://modelcontextprotocol.io/)                                                | Transport-level details and JSON-RPC framing                                 |
+| [respx](https://lundberg.github.io/respx/)                                                  | httpx mocking library used in tests                                          |
