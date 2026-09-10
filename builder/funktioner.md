@@ -514,7 +514,3 @@ tilgængelig. Bemærk desuden, at hver uddelegering er et helt ekstra modelkald,
 sub-agents
 i gang parallelt — det ville øge både svartid og forbrug mærkbart, hvis funktionen på et tidspunkt blev slået
 til.
-
----
-
-*Denne vejledning er udarbejdet som led i Aarhus AI's implementering.*
