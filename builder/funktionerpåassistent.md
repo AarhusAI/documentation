@@ -106,7 +106,7 @@ Disse er underindstillinger, der kun vises og har effekt, når **Builtin Tools**
 | --- | --- | --- |
 | Time & Calculation | ✅ Anbefales | Simple tids- og datoberegninger, ingen server-afhængighed |
 | Hukommelse | ❌ Ikke tilgængelig | Deaktiveret på serverniveau |
-| Chat History | ❌ Skal slås fra | Skal fjernes manuelt på hver model. Se bemærkning nedenfor. |
+| Chat History | ❌ Skal forblive slået fra | Slået fra som standard — må ikke aktiveres. Se bemærkning nedenfor. |
 | Noter | ❌ Ikke tilgængelig | Deaktiveret på serverniveau |
 | Vidensbase | ✅ Anbefales | Nødvendig hvis assistenten skal bruge vidensbaser |
 | Ask User | Efter behov | Styres kun via kategori-afkrydsningen pr. model |
@@ -503,7 +503,7 @@ tilgængelig.
 
 ### Sub-agents (Builtin Tools-kategori)
 
-**Hvad gør det?** Giver modellen mulighed for at uddelegere en afgrænset delopgave til en "hjælpeagent", der
+**Hvad gør det?** Giver modellen mulighed for at uddelegere en afgrænset deopgave til en "hjælpeagent", der
 kører sin
 egen selvstændige samtale med samme model og værktøjer, og derefter rapporterer resultatet tilbage til
 hovedsamtalen.
