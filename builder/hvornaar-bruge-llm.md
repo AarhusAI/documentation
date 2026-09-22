@@ -20,10 +20,10 @@ og hvordan den i så fald bør bygges.
 > Spørg: **"Hvad sker der, hvis svaret er 95 % rigtigt, men de sidste 5 % er
 > forkerte?"**
 
-| Konsekvens af en fejl | Anbefaling |
+|Konsekvens af en fejl|Anbefaling|
 |---|---|
-| Lidt irriterende — brugeren tjekker selv videre | En AI-assistent er velegnet |
-| Juridisk problem, forkert udbetaling, brud på GDPR | Kræver særlig opsætning (se nedenfor) eller menneskelig kontrol — undgå evt. helt som en ren AI-opgave |
+|Lidt irriterende — brugeren tjekker selv videre|En AI-assistent er velegnet|
+|Juridisk problem, forkert udbetaling, brud på GDPR|Kræver særlig opsætning (se nedenfor) eller menneskelig kontrol — undgå evt. helt som en ren AI-opgave|
 
 ## Det en LLM er god til
 
