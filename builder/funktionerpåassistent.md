@@ -1,9 +1,9 @@
 ---
-title: Vejledning: Funktioner i OpenWebUI — hvad gør de?
+title: Funktioner i OpenWebUI — hvad gør de?
 parent: Builder
 ---
 
-## Vejledning: Funktioner i OpenWebUI — hvad gør de?
+## Funktioner i OpenWebUI — hvad gør de?
 
 Når du opretter eller konfigurerer en assistent i **Workspace → Models**, kan du aktivere en række funktioner.
 Denne
