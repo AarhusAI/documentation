@@ -1,5 +1,5 @@
 ---
-title: Viden
+title: Hvornår er en use case egnet til en AI-assistent?
 parent: Builder
 ---
 
