@@ -1,5 +1,6 @@
 ---
 title: Vejledning: Funktioner i OpenWebUI — hvad gør de?
+parent: Builder
 ---
 
 ## Vejledning: Funktioner i OpenWebUI — hvad gør de?
