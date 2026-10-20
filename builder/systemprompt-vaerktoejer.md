@@ -1,3 +1,8 @@
+---
+title: Systemprompt
+parent: Builder
+---
+
 # Systemprompt og værktøjer: hvad skal du huske?
 
 Denne side beskriver, hvad du skal skrive i din systemprompt, når din assistent skal bruge videndatabasen (RAG), websøgning, skills eller office-værktøjet.
