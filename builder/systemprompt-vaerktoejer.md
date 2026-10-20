@@ -78,7 +78,6 @@ VIDENDATABASEN (knowledge base, værktøjet query_knowledge_files): Kald query_k
 - [emne 1]
 - [emne 2]
 - [emne 3]
-Søg gerne to gange: først med nøgleord, derefter med en alternativ formulering.
 Finder du intet relevant, så skriv: "Jeg kunne ikke finde et svar i videndatabasen."
 ```
 
