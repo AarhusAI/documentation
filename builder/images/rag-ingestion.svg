@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="310" viewBox="0 0 680 310" role="img" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<title>Ingestion i AarhusAI efter filtype</title><desc>En uploadet fil sendes ad en af tre veje: tekst og PDF læses af Kreuzberg, Word med billeder beskrives af en vision-model, og CSV skrives som kolonne: værdi. Derefter chunkes, embeddes og gemmes alt i Qdrant.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect width="680" height="310" fill="#FFFFFF"/>
+<rect x="40" y="120" width="120" height="56" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.8"/><text x="100.0" y="143" text-anchor="middle" font-size="14" font-weight="600" fill="#2C2C2A">Upload</text><text x="100.0" y="162" text-anchor="middle" font-size="12" fill="#5F5E5A">Open WebUI</text>
+<path d="M162 148 L172 148" fill="none" stroke="#73726C" stroke-width="1.5"/>
+<path d="M172 68 L172 228" fill="none" stroke="#73726C" stroke-width="1.5"/>
+<path d="M172 68 L184 68" fill="none" stroke="#73726C" stroke-width="1.5" marker-end="url(#a)"/>
+<path d="M172 148 L184 148" fill="none" stroke="#73726C" stroke-width="1.5" marker-end="url(#a)"/>
+<path d="M172 228 L184 228" fill="none" stroke="#73726C" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="186" y="40" width="212" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.8"/><text x="292.0" y="63" text-anchor="middle" font-size="14" font-weight="600" fill="#3C3489">Tekst, Markdown, PDF</text><text x="292.0" y="82" text-anchor="middle" font-size="12" fill="#534AB7">Kreuzberg læser tekst</text>
+<rect x="186" y="120" width="212" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.8"/><text x="292.0" y="143" text-anchor="middle" font-size="14" font-weight="600" fill="#712B13">Word med billeder</text><text x="292.0" y="162" text-anchor="middle" font-size="12" fill="#993C1D">Vision-model beskriver</text>
+<rect x="186" y="200" width="212" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.8"/><text x="292.0" y="223" text-anchor="middle" font-size="14" font-weight="600" fill="#712B13">CSV-fil</text><text x="292.0" y="242" text-anchor="middle" font-size="12" fill="#993C1D">Række → kolonne: værdi</text>
+<path d="M400 68 L420 68" fill="none" stroke="#73726C" stroke-width="1.5"/>
+<path d="M400 148 L420 148" fill="none" stroke="#73726C" stroke-width="1.5"/>
+<path d="M400 228 L420 228" fill="none" stroke="#73726C" stroke-width="1.5"/>
+<path d="M420 228 L420 68" fill="none" stroke="#73726C" stroke-width="1.5"/>
+<path d="M420 68 L448 68" fill="none" stroke="#73726C" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="450" y="40" width="190" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.8"/><text x="545.0" y="63" text-anchor="middle" font-size="14" font-weight="600" fill="#3C3489">Chunking</text><text x="545.0" y="82" text-anchor="middle" font-size="12" fill="#534AB7">Overskrift eller række</text>
+<path d="M545 98 L545 118" fill="none" stroke="#73726C" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="450" y="120" width="190" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.8"/><text x="545.0" y="143" text-anchor="middle" font-size="14" font-weight="600" fill="#3C3489">Embedding</text><text x="545.0" y="162" text-anchor="middle" font-size="12" fill="#534AB7">e5-large + BM42</text>
+<path d="M545 178 L545 198" fill="none" stroke="#73726C" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="450" y="200" width="190" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.8"/><text x="545.0" y="223" text-anchor="middle" font-size="14" font-weight="600" fill="#085041">Qdrant</text><text x="545.0" y="242" text-anchor="middle" font-size="12" fill="#0F6E56">Fælles indeks</text>
+<rect x="40" y="276" width="12" height="12" rx="2" fill="#FAECE7" stroke="#993C1D" stroke-width="0.8"/><text x="60" y="286" font-size="12" font-weight="400" fill="#5F5E5A" text-anchor="start">Særlig behandling</text>
+<rect x="200" y="276" width="12" height="12" rx="2" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.8"/><text x="220" y="286" font-size="12" font-weight="400" fill="#5F5E5A" text-anchor="start">Standardvej</text>
+</svg>

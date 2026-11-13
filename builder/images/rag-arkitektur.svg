@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="280" viewBox="0 0 680 280" role="img" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<title>Arkitektur for RAG i AarhusAI</title><desc>Open WebUI sender filer til ingestion-service og spørgsmål til retrieval-agent. Begge tjenester bruger kun Qdrant.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect width="680" height="280" fill="#FFFFFF"/>
+<rect x="40" y="110" width="150" height="56" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.8"/><text x="115.0" y="133" text-anchor="middle" font-size="14" font-weight="600" fill="#2C2C2A">Open WebUI</text><text x="115.0" y="152" text-anchor="middle" font-size="12" fill="#5F5E5A">Brugerflade</text>
+<rect x="265" y="40" width="170" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.8"/><text x="350.0" y="63" text-anchor="middle" font-size="14" font-weight="600" fill="#3C3489">ingestion-service</text><text x="350.0" y="82" text-anchor="middle" font-size="12" fill="#534AB7">Ved upload af fil</text>
+<rect x="265" y="180" width="170" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.8"/><text x="350.0" y="203" text-anchor="middle" font-size="14" font-weight="600" fill="#085041">retrieval-agent</text><text x="350.0" y="222" text-anchor="middle" font-size="12" fill="#0F6E56">Ved spørgsmål</text>
+<rect x="510" y="110" width="130" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.8"/><text x="575.0" y="133" text-anchor="middle" font-size="14" font-weight="600" fill="#085041">Qdrant</text><text x="575.0" y="152" text-anchor="middle" font-size="12" fill="#0F6E56">Fælles indeks</text>
+<path d="M192 138 L225 138" fill="none" stroke="#73726C" stroke-width="1.5"/>
+<path d="M225 138 L225 68 L263 68" fill="none" stroke="#73726C" stroke-width="1.5" marker-end="url(#a)"/>
+<path d="M225 138 L225 208 L263 208" fill="none" stroke="#73726C" stroke-width="1.5" marker-end="url(#a)"/>
+<path d="M437 68 L475 68 L475 208 L437 208" fill="none" stroke="#73726C" stroke-width="1.5"/>
+<path d="M475 138 L508 138" fill="none" stroke="#73726C" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="340" y="262" font-size="12" font-weight="400" fill="#5F5E5A" text-anchor="middle">De to tjenester kalder aldrig hinanden. De deler kun Qdrant.</text>
+</svg>
