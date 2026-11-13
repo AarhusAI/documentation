@@ -1,10 +1,15 @@
-# Sådan virker RAG i AarhusAI
+---
+title: RAG
+parent: Builder
+---
+
+## Sådan virker RAG i AarhusAI
 
 Denne side forklarer, hvordan AarhusAI finder viden i jeres dokumenter og bruger
 den til at svare. Man følger hele vejen fra et dokument lægges i en vidensbase,
 til brugeren stiller et spørgsmål og får et svar med kilder.
 
-## Hvad er RAG?
+### Hvad er RAG?
 
 RAG står for Retrieval-Augmented Generation. Sprogmodellen kender ikke jeres
 interne viden på forhånd. I stedet søger systemet i vidensbasen, hver gang
@@ -23,7 +28,7 @@ RAG består af to faser:
 2. **Retrieval og svar**: Der søges i den indekserede viden, og sprogmodellen
    svarer. Det sker, hver gang en bruger stiller et spørgsmål.
 
-## Arkitektur
+### Arkitektur
 
 I AarhusAI er RAG flyttet ud af Open WebUI og ind i to separate tjenester.
 `ingestion-service` gør dokumenterne søgbare, og `retrieval-agent` søger i dem.
@@ -36,7 +41,7 @@ Fordi de to tjenester kun deler Qdrant, skal de bruge præcis den samme
 embedding-model. Bruger de forskellige modeller, bliver søgeresultaterne
 forkerte, uden at der kommer en fejlmeddelelse.
 
-## Fase 1: Ingestion
+### Fase 1: Ingestion
 
 Når en fil lægges i en vidensbase, gemmer Open WebUI den rå fil i S3 og beder
 `ingestion-service` om at behandle den. Tjenesten vælger først en vej ud fra
@@ -45,14 +50,14 @@ måde.
 
 ![Ingestion: tre veje afhængigt af filtype, derefter chunking, embedding og Qdrant](images/rag-ingestion.svg)
 
-### Udtræk af tekst
+#### Udtræk af tekst
 
 De fleste filer, herunder Markdown, går standardvejen gennem Kreuzberg.
 Kreuzberg læser teksten, henter metadata som titel og sprog og gengiver
 indlejrede tabeller som Markdown. Markdown er den nemmeste filtype, fordi den
 allerede er ren tekst.
 
-### Word-filer med billeder og diagrammer
+#### Word-filer med billeder og diagrammer
 
 En almindelig tekstudtrækker smider billeder væk. Derfor sender tjenesten
 Word-filer med flowcharts eller store billeder til en vision-model, der
@@ -60,14 +65,14 @@ beskriver indholdet. Små billeder som ikoner og logoer i sidehoved og sidefod
 bliver ikke medregnet. Resultatet er den originale tekst fra dokumentet plus en
 beskrivelse af diagrammet, så det kan søges i som alt andet.
 
-### CSV-filer
+#### CSV-filer
 
 Et almindeligt chunk midt i et regneark mister kolonneoverskrifterne. CSV-filer
 har derfor deres egen vej, hvor hver række skrives som linjer med
 `kolonne: værdi`. Rækken `Anne, 8000, Aarhus` bliver altså til `Navn: Anne`,
 `Postnr: 8000` og `By: Aarhus`. Hver række havner i præcis ét tekststykke.
 
-### PDF-filer med billeder
+#### PDF-filer med billeder
 
 PDF-filer går altid standardvejen gennem Kreuzberg. Teksten bliver læst, men
 billeder, diagrammer og screenshots i en PDF bliver ikke beskrevet. Står der
@@ -78,7 +83,7 @@ PDF-filer uden tekstlag kan kun læses, hvis Kreuzberg kører med OCR.
 > så skriv den også som tekst, eller læg dokumentet ind som Word eller Markdown
 > i stedet.
 
-### Chunking
+#### Chunking
 
 Teksten deles i mindre stykker, så sprogmodellen kun får de relevante dele og
 ikke hele dokumenter. Markdown-chunkeren deler først efter overskrifter og
@@ -90,7 +95,7 @@ Hvert stykke husker sin overskriftssti, for eksempel
 embeddes, så overskrifterne er med til at bestemme, hvad stykket bliver fundet
 på.
 
-### Lagring i Qdrant(vektordatabase)
+#### Lagring i Qdrant(vektordatabase)
 
 Alle stykker gemmes i én fælles samling i Qdrant. Hvert stykke er mærket med den
 vidensbase, det tilhører, så en assistent kun kan finde viden fra de
@@ -100,12 +105,12 @@ Når et dokument opdateres, skrives den nye version, før den gamle slettes.
 Fejler noget undervejs, bliver den tidligere version stående, så brugerne aldrig
 ser et halvt opdateret dokument.
 
-## Fase 2: Retrieval og svar
+### Fase 2: Retrieval og svar
 
 Når brugeren stiller et spørgsmål, sendes det fra Open WebUI til
 `retrieval-agent`.
 
-### Agentisk tilstand
+#### Agentisk tilstand
 
 I agentisk tilstand omformulerer en sprogmodel spørgsmålet til bedre søgninger
 og vurderer resultaterne. Er de helt ved siden af, prøver den igen med en ny
@@ -122,12 +127,12 @@ Agentisk tilstand giver bedre svar på vage eller sammensatte spørgsmål, men
 koster cirka 2 til 5 gange så lang svartid og 2 til 4 gange så mange tokens pr.
 spørgsmål.
 
-### Svaret
+#### Svaret
 
 Sprogmodellen får spørgsmålet og de udvalgte stykker og skriver svaret ud fra
 dem. Svaret vises i Open WebUI med henvisning til de dokumenter, det bygger på.
 
-## Struktur og hierarki i dokumenter
+### Struktur og hierarki i dokumenter
 
 Der er tre former for hierarki, og de har meget forskellig betydning for
 søgningen.
@@ -148,9 +153,9 @@ dokumentets titel og overskrifter.
 Skriv hver sektion, så den giver mening alene. Sprogmodellen ser kun de udvalgte
 stykker, så henvisninger som "som nævnt ovenfor" peger ud i det blå.
 
-## Gode råd
+### Gode råd
 
-### Til dem, der skriver dokumenter
+#### Til dem, der skriver dokumenter
 
 - **Skriv med brugernes ord.** Forkortelser og interne kaldenavne er svære for
   søgningen. Skriv både "MUS" og "medarbejderudviklingssamtale" mindst én gang,
@@ -167,7 +172,7 @@ stykker, så henvisninger som "som nævnt ovenfor" peger ud i det blå.
 - **Skriv diagrammer som tekst.** I Markdown kan et diagram skrives som Mermaid,
   så indholdet kan søges i.
 
-### Til dem, der bygger assistenter
+#### Til dem, der bygger assistenter
 
 - **Kobl kun relevante vidensbaser på.** Mere viden giver ikke bedre svar, men
   flere forkerte kandidater.
@@ -179,7 +184,7 @@ stykker, så henvisninger som "som nævnt ovenfor" peger ud i det blå.
 - **Afgræns assistenten i systemprompten.** Bed den om kun at bruge vidensbasen
   og om at sige det ærligt, når svaret ikke findes.
 
-### Til fejlsøgning
+#### Til fejlsøgning
 
 Når assistenten svarer forkert, så find ud af, om fejlen ligger i søgningen
 eller i svaret:
@@ -194,7 +199,7 @@ Kildehenvisningerne i svaret er det hurtigste sted at se forskellen.
 hvordan et dokument bliver læst, og et inspektions-endpoint, der viser, hvordan
 et dokument blev delt op. Inspektions-endpointet er slået fra som standard.
 
-## Eksempel: Systemprompt til en assistent uden internetadgang
+### Eksempel: Systemprompt til en assistent uden internetadgang
 
 ```text
 Du er en hjælpsom assistent, der besvarer spørgsmål ud fra din vidensbase.
@@ -220,7 +225,7 @@ Test afgrænsningen ved at spørge om noget, som sprogmodellen sandsynligvis
 kender i forvejen, men som ikke står i vidensbasen. Svarer assistenten
 alligevel, bruger den sin egen viden, og systemprompten skal strammes.
 
-## Opsummering
+### Opsummering
 
 Kvaliteten af RAG afhænger mere af dokumenterne end af teknikken. Et velskrevet
 dokument med klare overskrifter og ét emne pr. afsnit slår næsten enhver
